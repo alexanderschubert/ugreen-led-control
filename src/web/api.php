@@ -81,33 +81,6 @@ if ($method === 'GET') {
                 'leds' => is_array($data) ? $data : []
             ]);
 
-        case 'csrf':
-            /*
-             * Return the current Unraid WebGUI CSRF token.
-             *
-             * The browser already has an authenticated WebGUI
-             * session when this endpoint is requested.
-             */
-            $varFile = '/var/local/emhttp/var.ini';
-
-            $var = is_file($varFile)
-                ? parse_ini_file($varFile)
-                : [];
-
-            $token = (string)($var['csrf_token'] ?? '');
-
-            if ($token === '') {
-                respond([
-                    'ok' => false,
-                    'error' => 'CSRF token unavailable'
-                ], 500);
-            }
-
-            respond([
-                'ok' => true,
-                'csrf_token' => $token
-            ]);
-
         case 'led':
             $led = $_GET['led'] ?? '';
 
@@ -140,7 +113,8 @@ if ($method === 'GET') {
 
 if ($method === 'POST') {
 
-        $input = $_POST;
+    // Unraid's local_prepend.php has already rejected POSTs without a valid csrf_token.
+    $input = $_POST;
 
     $action = $input['action'] ?? '';
     $led = $input['led'] ?? '';
