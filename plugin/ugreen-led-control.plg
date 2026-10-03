@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE PLUGIN [
+<!ENTITY name      "ugreen-led-control">
+<!ENTITY author    "Alexander Schubert">
+<!ENTITY version   "0.1.0">
+<!ENTITY launch    "Settings/UGREEN LED Control">
+<!ENTITY pluginURL "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control/main/plugin/ugreen-led-control.plg">
+]>
+
+<PLUGIN
+  name="&name;"
+  author="&author;"
+  version="&version;"
+  launch="&launch;"
+  pluginURL="&pluginURL;"
+  icon="lightbulb-o"
+  min="7.0.0"
+  support="https://github.com/alexanderschubert/ugreen-led-control/issues"
+>
+
+<CHANGES>
+
+### 2026-10-02
+
+#### Version 0.1.0
+- Initial release
+- UGREEN DXP 6800 Pro support
+- Independent led_ugreen driver management
+- LED backend
+- Web interface
+
+</CHANGES>
+
+<!-- ========================================================= -->
+<!-- INSTALL -->
+<!-- ========================================================= -->
+
+<FILE Run="/bin/bash">
+<INLINE>
+<![CDATA[
+
+set -e
+
+PLUGIN_NAME="ugreen-led-control"
+PLUGIN_VERSION="0.1.0"
+
+PLUGIN_DIR="/usr/local/emhttp/plugins/${PLUGIN_NAME}"
+BOOT_DIR="/boot/config/plugins/${PLUGIN_NAME}"
+
+KERNEL="$(uname -r)"
+
+echo ""
+echo "=================================================="
+echo "UGREEN LED CONTROL"
+echo "Installation ${PLUGIN_VERSION}"
+echo "Kernel: ${KERNEL}"
+echo "=================================================="
+echo ""
+
+#
+# Persistent directories
+#
+
+mkdir -p "${BOOT_DIR}"
+mkdir -p "${PLUGIN_DIR}"
+
+#
+# Hardware detection
+#
+
+if [ -d "/sys/bus/i2c/devices/0-003a" ]; then
+    echo "[UGREEN LED Control] UGREEN I2C device 0x3a detected."
+else
+    echo "[UGREEN LED Control] UGREEN I2C device 0x3a not detected."
+fi
+
+#
+# Driver
+#
+
+SOURCE="${BOOT_DIR}/driver/${KERNEL}/led-ugreen.ko.xz"
+TARGET="/lib/modules/${KERNEL}/extra/led-ugreen.ko.xz"
+
+if [ -f "${SOURCE}" ]; then
+
+    echo "[UGREEN LED Control] Driver package found."
+
+    mkdir -p "/lib/modules/${KERNEL}/extra"
+
+    SOURCE_HASH="$(sha256sum "${SOURCE}" | awk '{print $1}')"
+
+    if [ -f "${TARGET}" ]; then
+        TARGET_HASH="$(sha256sum "${TARGET}" | awk '{print $1}')"
+    else
+        TARGET_HASH=""
+    fi
+
+    if [ "${SOURCE_HASH}" = "${TARGET_HASH}" ]; then
+
+        echo "[UGREEN LED Control] Existing driver matches."
+
+    else
+
+        echo "[UGREEN LED Control] Installing/updating driver."
+
+        cp "${SOURCE}" "${TARGET}"
+        chmod 644 "${TARGET}"
+
+        echo "installed_by=ugreen-led-control" \
+            > "${BOOT_DIR}/driver-state"
+
+        echo "kernel=${KERNEL}" \
+            >> "${BOOT_DIR}/driver-state"
+
+        echo "sha256=${SOURCE_HASH}" \
+            >> "${BOOT_DIR}/driver-state"
+
+    fi
+
+    depmod -a "${KERNEL}"
+
+    if lsmod | grep -q '^led_ugreen '; then
+
+        echo "[UGREEN LED Control] led_ugreen already loaded."
+
+    else
+
+        echo "[UGREEN LED Control] Loading led_ugreen..."
+
+        modprobe led_ugreen
+
+    fi
+
+else
+
+    echo "[UGREEN LED Control] WARNING:"
+    echo "[UGREEN LED Control] No driver package for kernel ${KERNEL}."
+    echo "[UGREEN LED Control] LED control is unavailable."
+
+fi
+
+#
+# Install plugin files
+#
+
+echo "[UGREEN LED Control] Installing web interface."
+
+rm -rf "${PLUGIN_DIR}/backend"
+rm -rf "${PLUGIN_DIR}/css"
+rm -rf "${PLUGIN_DIR}/js"
+
+mkdir -p \
+    "${PLUGIN_DIR}/backend" \
+    "${PLUGIN_DIR}/css" \
+    "${PLUGIN_DIR}/js"
+
+if [ -f "${BOOT_DIR}/backend/ugreen-leds" ]; then
+    cp "${BOOT_DIR}/backend/ugreen-leds" \
+       "${PLUGIN_DIR}/backend/ugreen-leds"
+fi
+
+if [ -f "${BOOT_DIR}/css/app.css" ]; then
+    cp "${BOOT_DIR}/css/app.css" \
+       "${PLUGIN_DIR}/css/app.css"
+fi
+
+if [ -f "${BOOT_DIR}/js/app.js" ]; then
+    cp "${BOOT_DIR}/js/app.js" \
+       "${PLUGIN_DIR}/js/app.js"
+fi
+
+if [ -f "${BOOT_DIR}/UGREENLEDControl.page" ]; then
+    cp "${BOOT_DIR}/UGREENLEDControl.page" \
+       "${PLUGIN_DIR}/UGREENLEDControl.page"
+fi
+
+if [ -f "${BOOT_DIR}/api.php" ]; then
+    cp "${BOOT_DIR}/api.php" \
+       "${PLUGIN_DIR}/api.php"
+fi
+
+chmod +x \
+    "${PLUGIN_DIR}/backend/ugreen-leds" \
+    2>/dev/null || true
+
+#
+# Store installed version
+#
+
+echo "${PLUGIN_VERSION}" > "${BOOT_DIR}/version"
+
+echo ""
+echo "=================================================="
+echo "UGREEN LED CONTROL INSTALL COMPLETE"
+echo "=================================================="
+echo ""
+
+]]>
+</INLINE>
+</FILE>
+
+<!-- ========================================================= -->
+<!-- REMOVE -->
+<!-- ========================================================= -->
+
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+<![CDATA[
+
+set +e
+
+PLUGIN_NAME="ugreen-led-control"
+
+PLUGIN_DIR="/usr/local/emhttp/plugins/${PLUGIN_NAME}"
+BOOT_DIR="/boot/config/plugins/${PLUGIN_NAME}"
+
+echo ""
+echo "=================================================="
+echo "UGREEN LED CONTROL – REMOVE"
+echo "=================================================="
+echo ""
+
+#
+# Read driver ownership
+#
+
+DRIVER_OWNED="false"
+
+if [ -f "${BOOT_DIR}/driver-state" ]; then
+
+    if grep -q '^installed_by=ugreen-led-control$' \
+        "${BOOT_DIR}/driver-state"; then
+
+        DRIVER_OWNED="true"
+
+    fi
+
+fi
+
+#
+# Remove web plugin
+#
+
+rm -rf "${PLUGIN_DIR}"
+
+#
+# Remove our driver only if WE installed it
+#
+
+if [ "${DRIVER_OWNED}" = "true" ]; then
+
+    KERNEL="$(uname -r)"
+    TARGET="/lib/modules/${KERNEL}/extra/led-ugreen.ko.xz"
+
+    echo "[UGREEN LED Control] Our driver was installed."
+
+    if lsmod | grep -q '^led_ugreen '; then
+
+        echo "[UGREEN LED Control] Unloading led_ugreen."
+
+        modprobe -r led_ugreen 2>/dev/null || true
+
+    fi
+
+    if [ -f "${TARGET}" ]; then
+
+        echo "[UGREEN LED Control] Removing driver."
+
+        rm -f "${TARGET}"
+
+        depmod -a "${KERNEL}"
+
+    fi
+
+else
+
+    echo "[UGREEN LED Control] Driver was not owned by this plugin."
+    echo "[UGREEN LED Control] Driver will not be removed."
+
+fi
+
+echo ""
+echo "UGREEN LED Control removed."
+echo ""
+
+]]>
+</INLINE>
+</FILE>
+
+</PLUGIN>

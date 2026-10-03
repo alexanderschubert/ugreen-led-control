@@ -1,0 +1,768 @@
+Menu="Settings:1"
+Title="UGREEN LED Control"
+Icon="lightbulb-o"
+---
+
+<?php
+$ugreen_led_var = is_file('/var/local/emhttp/var.ini')
+    ? parse_ini_file('/var/local/emhttp/var.ini')
+    : [];
+
+$ugreen_led_csrf_token = $ugreen_led_var['csrf_token'] ?? '';
+?>
+
+<script>
+window.UGREEN_LED_CSRF_TOKEN = <?= json_encode($ugreen_led_csrf_token) ?>;
+</script>
+
+<div class="ugreen-led-control">
+
+<link
+    rel="stylesheet"
+    href="/plugins/ugreen-led-control/css/app.css"
+>
+
+<div class="app">
+
+<aside class="sidebar">
+
+    <div class="brand">
+
+        <div class="brand-icon">💡</div>
+
+        <div>
+            <strong>UGREEN LED</strong>
+            <small>Control</small>
+        </div>
+
+    </div>
+
+    <nav class="sidebar-nav">
+
+        <a
+            href="#"
+            class="sidebar-item active"
+            data-section="overview"
+        >
+            🏠
+            <span>Übersicht</span>
+        </a>
+
+        <a
+            href="#"
+            class="sidebar-item"
+            data-section="leds"
+        >
+            💡
+            <span>LEDs</span>
+        </a>
+
+        <a
+            href="#"
+            class="sidebar-item"
+            data-section="drives"
+        >
+            💾
+            <span>Laufwerke</span>
+        </a>
+
+        <a
+            href="#"
+            class="sidebar-item"
+            data-section="network"
+        >
+            🌐
+            <span>Netzwerk</span>
+        </a>
+
+        <a
+            href="#"
+            class="sidebar-item"
+            data-section="effects"
+        >
+            ✨
+            <span>Effekte</span>
+        </a>
+
+        <a
+            href="#"
+            class="sidebar-item"
+            data-section="schedule"
+        >
+            ⏰
+            <span>Zeitplan</span>
+        </a>
+
+        <a
+            href="#"
+            class="sidebar-item"
+            data-section="system"
+        >
+            ⚙️
+            <span>System</span>
+        </a>
+
+    </nav>
+
+</aside>
+
+
+<main class="main">
+
+<div class="container">
+
+<header class="topbar">
+
+    <div>
+        <h1>UGREEN LED Control</h1>
+        <div class="subtitle">
+            DXP 6800 Pro
+        </div>
+    </div>
+
+    <div id="connection-status" class="connection">
+        <span class="status-dot"></span>
+        Verbinde...
+    </div>
+
+</header>
+
+
+<!-- ======================================================
+     OVERVIEW
+     ====================================================== -->
+
+<section
+    class="content-section active"
+    data-section="overview"
+>
+
+<div class="grid">
+
+<article class="card">
+
+    <div class="card-title">
+        <h2>LED Status</h2>
+        <span>DXP 6800 Pro</span>
+    </div>
+
+    <div class="nas-preview">
+
+        <div class="nas-body">
+
+            <div
+                class="nas-led"
+                data-led="disk1"
+                style="--led-color:#3b82f6"
+            ></div>
+
+            <div
+                class="nas-led"
+                data-led="disk2"
+                style="--led-color:#3b82f6"
+            ></div>
+
+            <div
+                class="nas-led"
+                data-led="disk3"
+                style="--led-color:#3b82f6"
+            ></div>
+
+            <div
+                class="nas-led"
+                data-led="disk4"
+                style="--led-color:#3b82f6"
+            ></div>
+
+            <div
+                class="nas-led"
+                data-led="disk5"
+                style="--led-color:#3b82f6"
+            ></div>
+
+            <div
+                class="nas-led"
+                data-led="disk6"
+                style="--led-color:#3b82f6"
+            ></div>
+
+        </div>
+
+        <div class="nas-label">
+            Bay 1 · Bay 2 · Bay 3 · Bay 4 · Bay 5 · Bay 6
+        </div>
+
+    </div>
+
+    <div class="control-row">
+
+        <label>
+            <span>Helligkeit</span>
+            <strong id="brightness-value">50 %</strong>
+        </label>
+
+        <input
+            id="brightness"
+            type="range"
+            min="0"
+            max="255"
+            value="128"
+        >
+
+    </div>
+
+</article>
+
+
+<article class="card">
+
+    <div class="card-title">
+        <h2>Aktiver Modus</h2>
+    </div>
+
+    <div class="mode">
+        🟢 Statusbasiert
+    </div>
+
+    <p class="muted">
+        Die LED-Steuerung kann später automatisch
+        auf NAS-, Laufwerks- und Netzwerkstatus reagieren.
+    </p>
+
+    <div class="action-row">
+
+        <button
+            id="refresh"
+            class="primary"
+        >
+            ↻ Aktualisieren
+        </button>
+
+        <button
+            id="all-off"
+            class="danger"
+        >
+            Alle LEDs aus
+        </button>
+
+    </div>
+
+</article>
+
+
+<article class="card wide">
+
+    <div class="card-title">
+        <h2>Laufwerke</h2>
+        <span>DXP 6800 Pro · 6 Bays</span>
+    </div>
+
+    <div class="led-grid">
+
+        <div
+            class="led-card selected"
+            data-led="disk1"
+        >
+            <strong>Bay 1</strong>
+            <small>● LED verfügbar</small>
+        </div>
+
+        <div
+            class="led-card"
+            data-led="disk2"
+        >
+            <strong>Bay 2</strong>
+            <small>● LED verfügbar</small>
+        </div>
+
+        <div
+            class="led-card"
+            data-led="disk3"
+        >
+            <strong>Bay 3</strong>
+            <small>● LED verfügbar</small>
+        </div>
+
+        <div
+            class="led-card"
+            data-led="disk4"
+        >
+            <strong>Bay 4</strong>
+            <small>● LED verfügbar</small>
+        </div>
+
+        <div
+            class="led-card"
+            data-led="disk5"
+        >
+            <strong>Bay 5</strong>
+            <small>● LED verfügbar</small>
+        </div>
+
+        <div
+            class="led-card"
+            data-led="disk6"
+        >
+            <strong>Bay 6</strong>
+            <small>● LED verfügbar</small>
+        </div>
+
+    </div>
+
+</article>
+
+
+<article class="card">
+
+    <div class="card-title">
+        <h2>Netzwerk</h2>
+    </div>
+
+    <div class="stat-number">
+        10 Gbit
+    </div>
+
+    <span class="ok">
+        ● Verbunden
+    </span>
+
+</article>
+
+
+<article class="card">
+
+    <div class="card-title">
+        <h2>System</h2>
+    </div>
+
+    <div class="system-grid">
+
+        <div class="system-item">
+            <small>Controller</small>
+            <strong id="controller-status">
+                —
+            </strong>
+        </div>
+
+        <div class="system-item">
+            <small>Hardware</small>
+            <strong>
+                DXP 6800 Pro
+            </strong>
+        </div>
+
+        <div class="system-item">
+            <small>I²C</small>
+            <strong id="controller-address">
+                —
+            </strong>
+        </div>
+
+    </div>
+
+</article>
+
+</div>
+
+</section>
+
+
+<!-- ======================================================
+     LEDS
+     ====================================================== -->
+
+<section
+    class="content-section"
+    data-section="leds"
+>
+
+<div class="grid">
+
+<article class="card wide">
+
+    <div class="card-title">
+        <h2>LED auswählen</h2>
+        <span>Linux LED Class</span>
+    </div>
+
+    <div class="led-grid">
+
+        <div
+            class="led-card selected"
+            data-led="power"
+        >
+            <strong>Power</strong>
+            <small>● System</small>
+        </div>
+
+        <div
+            class="led-card"
+            data-led="netdev"
+        >
+            <strong>Netzwerk</strong>
+            <small>● br0</small>
+        </div>
+
+        <div
+            class="led-card"
+            data-led="disk1"
+        >
+            <strong>Bay 1</strong>
+            <small>● LED</small>
+        </div>
+
+        <div
+            class="led-card"
+            data-led="disk2"
+        >
+            <strong>Bay 2</strong>
+            <small>● LED</small>
+        </div>
+
+        <div
+            class="led-card"
+            data-led="disk3"
+        >
+            <strong>Bay 3</strong>
+            <small>● LED</small>
+        </div>
+
+        <div
+            class="led-card"
+            data-led="disk4"
+        >
+            <strong>Bay 4</strong>
+            <small>● LED</small>
+        </div>
+
+        <div
+            class="led-card"
+            data-led="disk5"
+        >
+            <strong>Bay 5</strong>
+            <small>● LED</small>
+        </div>
+
+        <div
+            class="led-card"
+            data-led="disk6"
+        >
+            <strong>Bay 6</strong>
+            <small>● LED</small>
+        </div>
+
+    </div>
+
+</article>
+
+
+<article class="card">
+
+    <div class="card-title">
+        <h2>Farbe</h2>
+    </div>
+
+    <div class="color-area">
+
+        <input
+            id="color"
+            type="color"
+            value="#3b82f6"
+        >
+
+        <div
+            id="color-preview"
+            class="color-preview"
+        ></div>
+
+    </div>
+
+</article>
+
+
+<article class="card">
+
+    <div class="card-title">
+        <h2>Effekt</h2>
+    </div>
+
+    <div class="effects">
+
+        <button
+            class="effect-button active"
+            data-effect="static"
+        >
+            💡 Statisch
+        </button>
+
+        <button
+            class="effect-button"
+            data-effect="blink"
+        >
+            ⚡ Blinken
+        </button>
+
+        <button
+            class="effect-button"
+            data-effect="breath"
+        >
+            🌊 Atmen
+        </button>
+
+    </div>
+
+</article>
+
+</div>
+
+</section>
+
+
+<!-- ======================================================
+     DRIVES
+     ====================================================== -->
+
+<section
+    class="content-section"
+    data-section="drives"
+>
+
+<div class="card">
+
+    <div class="card-title">
+        <h2>Laufwerke</h2>
+        <span>Physische Bays</span>
+    </div>
+
+    <div class="led-grid">
+
+        <div class="led-card" data-led="disk1">
+            <strong>Bay 1</strong>
+            <small>LED disk1</small>
+        </div>
+
+        <div class="led-card" data-led="disk2">
+            <strong>Bay 2</strong>
+            <small>LED disk2</small>
+        </div>
+
+        <div class="led-card" data-led="disk3">
+            <strong>Bay 3</strong>
+            <small>LED disk3</small>
+        </div>
+
+        <div class="led-card" data-led="disk4">
+            <strong>Bay 4</strong>
+            <small>LED disk4</small>
+        </div>
+
+        <div class="led-card" data-led="disk5">
+            <strong>Bay 5</strong>
+            <small>LED disk5</small>
+        </div>
+
+        <div class="led-card" data-led="disk6">
+            <strong>Bay 6</strong>
+            <small>LED disk6</small>
+        </div>
+
+    </div>
+
+</div>
+
+</section>
+
+
+<!-- ======================================================
+     NETWORK
+     ====================================================== -->
+
+<section
+    class="content-section"
+    data-section="network"
+>
+
+<div class="grid">
+
+<article class="card">
+
+    <div class="card-title">
+        <h2>Netzwerk LED</h2>
+        <span>netdev</span>
+    </div>
+
+    <div class="stat-number">
+        br0
+    </div>
+
+    <p class="muted">
+        Der UGREEN-Treiber stellt die Netzwerk-LED
+        über die Linux LED-Class bereit.
+    </p>
+
+    <button
+        class="primary"
+        onclick="document.querySelector('[data-led=netdev]').click()"
+    >
+        Netzwerk-LED konfigurieren
+    </button>
+
+</article>
+
+</div>
+
+</section>
+
+
+<!-- ======================================================
+     EFFECTS
+     ====================================================== -->
+
+<section
+    class="content-section"
+    data-section="effects"
+>
+
+<div class="card">
+
+    <div class="card-title">
+        <h2>LED Effekte</h2>
+        <span>Live</span>
+    </div>
+
+    <div class="effects">
+
+        <button
+            class="effect-button active"
+            data-effect="static"
+        >
+            💡 Statisch
+        </button>
+
+        <button
+            class="effect-button"
+            data-effect="blink"
+        >
+            ⚡ Blinken
+        </button>
+
+        <button
+            class="effect-button"
+            data-effect="breath"
+        >
+            🌊 Atmen
+        </button>
+
+    </div>
+
+    <div
+        id="led-message"
+        class="message"
+    ></div>
+
+</div>
+
+</section>
+
+
+<!-- ======================================================
+     SCHEDULE
+     ====================================================== -->
+
+<section
+    class="content-section"
+    data-section="schedule"
+>
+
+<div class="card">
+
+    <div class="card-title">
+        <h2>Zeitplan</h2>
+        <span>Coming next</span>
+    </div>
+
+    <p class="muted">
+        Hier werden wir als nächsten Schritt
+        Nachtmodus, Zeitpläne und automatische
+        Helligkeitsprofile integrieren.
+    </p>
+
+</div>
+
+</section>
+
+
+<!-- ======================================================
+     SYSTEM
+     ====================================================== -->
+
+<section
+    class="content-section"
+    data-section="system"
+>
+
+<div class="grid">
+
+<article class="card">
+
+    <div class="card-title">
+        <h2>Hardware</h2>
+    </div>
+
+    <div class="system-grid">
+
+        <div class="system-item">
+            <small>Modell</small>
+            <strong>DXP 6800 Pro</strong>
+        </div>
+
+        <div class="system-item">
+            <small>Treiber</small>
+            <strong>led_ugreen</strong>
+        </div>
+
+        <div class="system-item">
+            <small>I²C-Adresse</small>
+            <strong>0x3a</strong>
+        </div>
+
+    </div>
+
+</article>
+
+<article class="card">
+
+    <div class="card-title">
+        <h2>Controller</h2>
+    </div>
+
+    <p class="muted">
+        Linux LED Class
+    </p>
+
+    <p>
+        <span class="ok">
+            ● Erkannt
+        </span>
+    </p>
+
+</article>
+
+</div>
+
+</section>
+
+</div>
+
+</main>
+
+</div>
+
+<div
+    id="led-message"
+    class="message"
+></div>
+
+<script src="/plugins/ugreen-led-control/js/app.js"></script>
+
+</div>
