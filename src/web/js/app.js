@@ -109,13 +109,15 @@
         if (!element) return;
 
         element.textContent = message;
-        element.className = `led-message ${type}`;
+        element.className = `message ${type}`;
+
+        if (type === 'error') console.error('[UGREEN LED]', message);
 
         clearTimeout(element._timer);
 
         element._timer = setTimeout(() => {
             element.textContent = '';
-            element.className = 'led-message';
+            element.className = 'message';
         }, 3000);
     }
 

@@ -1,4 +1,4 @@
-Menu="Settings:1"
+Menu="Utilities"
 Title="UGREEN LED Control"
 Icon="lightbulb-o"
 Markdown="false"
@@ -655,11 +655,6 @@ window.UGREEN_LED_CSRF_TOKEN = <?= json_encode($ugreen_led_csrf_token) ?>;
         </button>
 
     </div>
-
-    <div
-        id="led-message"
-        class="message"
-    ></div>
 
 </div>
 
