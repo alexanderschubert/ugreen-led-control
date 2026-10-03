@@ -6,9 +6,27 @@
 
 set -u
 
-LED_BASE="/sys/class/leds"
+LED_BASE="${UGREEN_LED_BASE:-/sys/class/leds}"
 
-SUPPORTED_LEDS="power netdev disk1 disk2 disk3 disk4 disk5 disk6 disk7 disk8"
+# The driver always creates disk1..disk8; only the bays the model has are real.
+product_name() {
+    cat /sys/class/dmi/id/product_name 2>/dev/null || echo "UGREEN NAS"
+}
+
+# DXP6800 Pro -> 6, DX4600 Pro -> 4, DXP8800 Plus -> 8
+bay_count() {
+    local digit
+    digit="$(product_name | sed -n 's/^DXP\{0,1\}\([2-8]\)[0-9]\{3\}.*/\1/p')"
+    echo "${digit:-8}"
+}
+
+supported_leds() {
+    local i
+    printf 'power netdev'
+    for i in $(seq 1 "$(bay_count)"); do
+        printf ' disk%s' "$i"
+    done
+}
 
 usage() {
     cat <<USAGE
@@ -31,7 +49,7 @@ Usage:
 Supported LEDs:
   power
   netdev
-  disk1 ... disk8
+  disk1 ... diskN (N = number of bays)
 USAGE
 }
 
@@ -46,10 +64,15 @@ read_attr() {
     local file="$LED_BASE/$led/$attr"
 
     if [ -r "$file" ]; then
-        cat "$file" 2>/dev/null
+        head -n 1 "$file" 2>/dev/null
     else
         echo ""
     fi
+}
+
+# blink_type and trigger list every option and mark the active one: "[none] blink breath"
+read_selected() {
+    read_attr "$1" "$2" | sed -n 's/.*\[\([^]]*\)\].*/\1/p'
 }
 
 write_attr() {
@@ -77,7 +100,7 @@ list_leds() {
     local first=1
     local led
 
-    for led in $SUPPORTED_LEDS; do
+    for led in $(supported_leds); do
         if valid_led "$led"; then
             if [ "$first" -eq 0 ]; then
                 echo ","
@@ -103,32 +126,30 @@ get_status() {
     local brightness
     local max_brightness
     local color
+    local effect
     local trigger
-    local status
-    local device_name
 
     brightness="$(read_attr "$led" brightness)"
     max_brightness="$(read_attr "$led" max_brightness)"
     color="$(read_attr "$led" color)"
-    trigger="$(read_attr "$led" trigger)"
-    status="$(read_attr "$led" status)"
-    device_name="$(read_attr "$led" device_name)"
+    effect="$(read_selected "$led" blink_type)"
+    trigger="$(read_selected "$led" trigger)"
 
     printf '{\n'
     printf '  "name": "%s",\n' "$led"
     printf '  "brightness": "%s",\n' "$brightness"
     printf '  "max_brightness": "%s",\n' "$max_brightness"
     printf '  "color": "%s",\n' "$color"
-    printf '  "trigger": "%s",\n' "$trigger"
-    printf '  "status": "%s",\n' "$status"
-    printf '  "device_name": "%s"\n' "${device_name:-N/A}"
+    printf '  "effect": "%s",\n' "${effect:-none}"
+    printf '  "trigger": "%s"\n' "${trigger:-none}"
     printf '}\n'
 }
 
 status() {
     printf '{\n'
     printf '  "ok": true,\n'
-    printf '  "model": "UGREEN DXP 6800 Pro",\n'
+    printf '  "model": "%s",\n' "$(product_name)"
+    printf '  "bays": %s,\n' "$(bay_count)"
     printf '  "controller": "led_ugreen",\n'
     printf '  "i2c_bus": 0,\n'
     printf '  "i2c_address": "0x3a",\n'

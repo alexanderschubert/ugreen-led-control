@@ -2,37 +2,12 @@
     'use strict';
 
 
-    window.setTimeout(() => {
-        $.post(
-            '/webGui/include/StartCommand.php',
-            {
-                cmd: 'ugreen-leds color power 255 0 0',
-                start: 2,
-                csrf_token:
-                    window.UGREEN_LED_CSRF_TOKEN || ''
-            },
-            response => {
-                console.log(
-                    'UGREEN AUTO TEST:',
-                    response
-                );
-            }
-        ).fail((xhr, status, error) => {
-            console.error(
-                'UGREEN AUTO TEST ERROR:',
-                xhr.status,
-                status,
-                error,
-                xhr.responseText
-            );
-        });
-    }, 1000);
-
     const state = {
         selectedLed: 'power',
         brightness: 128,
         color: '#ffffff',
         effect: 'static',
+        leds: [],
         writeInProgress: false,
         colorTimer: null,
         pollTimer: null
@@ -76,163 +51,23 @@
     };
 
     /*
-     * Execute a controlled LED command through the native
-     * Unraid WebGUI command endpoint.
+     * Send an LED command to api.php. Unraid rejects POSTs
+     * without the WebGUI csrf_token before api.php runs.
      */
     const post = payload => {
 
-        const allowed = {
-            on: led => ['on', led],
-            off: led => ['off', led],
-            brightness: (led, value) => [
-                'brightness',
-                led,
-                value
-            ],
-            color: (led, r, g, b) => [
-                'color',
-                led,
-                r,
-                g,
-                b
-            ],
-            blink: (led, on, off) => [
-                'blink',
-                led,
-                on,
-                off
-            ],
-            breath: (led, on, off) => [
-                'breath',
-                led,
-                on,
-                off
-            ],
-            stop: led => ['stop', led],
-            trigger: (led, trigger) => [
-                'trigger',
-                led,
-                trigger
-            ]
-        };
-
-        const builder = allowed[payload.action];
-
-        if (!builder) {
-            return Promise.reject(
-                new Error('Nicht unterstützte LED-Aktion')
-            );
-        }
-
-        let args;
-
-        switch (payload.action) {
-            case 'on':
-            case 'off':
-            case 'stop':
-                args = builder(payload.led);
-                break;
-
-            case 'brightness':
-                args = builder(
-                    payload.led,
-                    payload.value
-                );
-                break;
-
-            case 'color':
-                args = builder(
-                    payload.led,
-                    payload.r,
-                    payload.g,
-                    payload.b
-                );
-                break;
-
-            case 'blink':
-            case 'breath':
-                args = builder(
-                    payload.led,
-                    payload.on,
-                    payload.off
-                );
-                break;
-
-            case 'trigger':
-                args = builder(
-                    payload.led,
-                    payload.trigger
-                );
-                break;
-        }
-
-        const command = [
-            'ugreen-leds',
-            ...args
-        ].map(value =>
-            String(value).replace(
-                /(["\\$`])/g,
-                '\\$1'
-            )
-        ).join(' ');
-
-        return new Promise((resolve, reject) => {
-
-            $.post(
-                '/webGui/include/StartCommand.php',
-                {
-                    cmd: command,
-                    start: 2,
-                    csrf_token:
-                        window.UGREEN_LED_CSRF_TOKEN || ''
-                },
-                response => {
-
-                    if (typeof response === 'string') {
-                        const trimmed =
-                            response.trim();
-
-                        if (!trimmed) {
-                            resolve({
-                                ok: true
-                            });
-                            return;
-                        }
-
-                        try {
-                            resolve(
-                                JSON.parse(trimmed)
-                            );
-                        } catch (e) {
-                            resolve({
-                                ok: true,
-                                output: trimmed
-                            });
-                        }
-
-                        return;
-                    }
-
-                    resolve(response);
-                }
-            ).fail((xhr, status, error) => {
-
-                let message =
-                    `HTTP ${xhr.status}`;
-
-                if (xhr.responseText) {
-                    message +=
-                        `: ${xhr.responseText}`;
-                }
-
-                reject(
-                    new Error(
-                        `${message} (${status})`
-                    )
-                );
-            });
-
+        const body = new URLSearchParams({
+            ...payload,
+            csrf_token: window.UGREEN_LED_CSRF_TOKEN || ''
         });
+
+        return api(
+            '/plugins/ugreen-led-control/api.php',
+            {
+                method: 'POST',
+                body
+            }
+        );
     };
 
     function hexToRgb(hex) {
@@ -339,6 +174,8 @@
                 '/plugins/ugreen-led-control/api.php?action=status'
             );
 
+            state.leds = Array.isArray(data.leds) ? data.leds : [];
+
             renderStatus(data);
 
         } catch (error) {
@@ -395,6 +232,19 @@
             }
 
             updateColorPreview(state.color);
+
+            state.effect =
+                data.effect === 'none' ? 'static' : data.effect;
+
+            document
+                .querySelectorAll('[data-effect]')
+                .forEach(button => {
+
+                    button.classList.toggle(
+                        'active',
+                        button.dataset.effect === state.effect
+                    );
+                });
 
             document
                 .querySelectorAll('.led-card')
@@ -732,22 +582,9 @@
 
                 await executeWrite(async () => {
 
-                    const leds = [
-                        'power',
-                        'netdev',
-                        'disk1',
-                        'disk2',
-                        'disk3',
-                        'disk4',
-                        'disk5',
-                        'disk6',
-                        'disk7',
-                        'disk8'
-                    ];
-
                     try {
 
-                        for (const led of leds) {
+                        for (const led of state.leds) {
 
                             await post({
                                 action: 'off',

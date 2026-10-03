@@ -1,5 +1,8 @@
 # Architecture
 
-The project separates the Unraid plugin packaging, hardware controller, monitoring logic, and web UI.
+- `plugin/ugreen-led-control.plg` – Unraid plugin: loads `led_ugreen` if no other plugin did, installs the web files.
+- `src/backend/ugreen-leds` – CLI over `/sys/class/leds`, prints JSON for reads.
+- `src/web/api.php` – JSON API used by the settings page.
+- `src/web/UGREENLEDControl.page`, `js/`, `css/` – the settings page.
 
-Hardware writes remain disabled until the DXP 6800 Pro controller is verified on the target Unraid 7 system.
+Planned: a userspace daemon talking to the controller through `i2c-dev`, so Unraid kernel updates no longer need a new driver build. It also runs software effects (rainbow, temperature, schedules).

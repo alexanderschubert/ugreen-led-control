@@ -2,9 +2,13 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.1.0">
-<!ENTITY launch    "Settings/UGREEN LED Control">
-<!ENTITY pluginURL "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control/main/plugin/ugreen-led-control.plg">
+<!ENTITY version   "0.2.0">
+<!ENTITY launch    "Settings/UGREENLEDControl">
+<!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
+<!ENTITY gitURL    "&repo;/v&version;">
+<!ENTITY pluginURL "&repo;/main/plugin/ugreen-led-control.plg">
+<!ENTITY bootDIR   "/boot/config/plugins/&name;">
+<!ENTITY srcDIR    "&bootDIR;/&version;">
 ]>
 
 <PLUGIN
@@ -20,16 +24,39 @@
 
 <CHANGES>
 
-### 2026-10-02
+### 0.2.0
+- Plugin downloads its files from GitHub instead of expecting them on the flash drive
+- LED writes from the settings page work (they go through api.php with the WebGUI csrf_token)
+- Only the bays the model really has are shown (DXP6800 Pro: 6)
+- Reading an LED returns valid JSON again
+- An led_ugreen driver loaded by another plugin is left alone
 
-#### Version 0.1.0
+### 0.1.0
 - Initial release
-- UGREEN DXP 6800 Pro support
-- Independent led_ugreen driver management
-- LED backend
-- Web interface
 
 </CHANGES>
+
+<!-- Plugin files, cached on the flash drive per version so a reboot needs no network -->
+
+<FILE Name="&srcDIR;/backend/ugreen-leds">
+<URL>&gitURL;/src/backend/ugreen-leds</URL>
+</FILE>
+
+<FILE Name="&srcDIR;/api.php">
+<URL>&gitURL;/src/web/api.php</URL>
+</FILE>
+
+<FILE Name="&srcDIR;/UGREENLEDControl.page">
+<URL>&gitURL;/src/web/UGREENLEDControl.page</URL>
+</FILE>
+
+<FILE Name="&srcDIR;/css/app.css">
+<URL>&gitURL;/src/web/css/app.css</URL>
+</FILE>
+
+<FILE Name="&srcDIR;/js/app.js">
+<URL>&gitURL;/src/web/js/app.js</URL>
+</FILE>
 
 <!-- ========================================================= -->
 <!-- INSTALL -->
@@ -39,161 +66,86 @@
 <INLINE>
 <![CDATA[
 
-set -e
-
-PLUGIN_NAME="ugreen-led-control"
-PLUGIN_VERSION="0.1.0"
-
-PLUGIN_DIR="/usr/local/emhttp/plugins/${PLUGIN_NAME}"
-BOOT_DIR="/boot/config/plugins/${PLUGIN_NAME}"
-
+PLUGIN_DIR="/usr/local/emhttp/plugins/&name;"
+BOOT_DIR="&bootDIR;"
+SRC_DIR="&srcDIR;"
 KERNEL="$(uname -r)"
 
-echo ""
-echo "=================================================="
-echo "UGREEN LED CONTROL"
-echo "Installation ${PLUGIN_VERSION}"
-echo "Kernel: ${KERNEL}"
-echo "=================================================="
-echo ""
+log() {
+    echo "[UGREEN LED Control] $1"
+}
 
-#
-# Persistent directories
-#
-
-mkdir -p "${BOOT_DIR}"
-mkdir -p "${PLUGIN_DIR}"
-
-#
-# Hardware detection
-#
-
-if [ -d "/sys/bus/i2c/devices/0-003a" ]; then
-    echo "[UGREEN LED Control] UGREEN I2C device 0x3a detected."
-else
-    echo "[UGREEN LED Control] UGREEN I2C device 0x3a not detected."
-fi
+log "Installing &version; on kernel ${KERNEL}"
 
 #
 # Driver
 #
+# Another plugin (e.g. ich777's ugreenleds-driver) may already provide
+# led_ugreen. Then we only use it and never touch it.
+#
 
-SOURCE="${BOOT_DIR}/driver/${KERNEL}/led-ugreen.ko.xz"
-TARGET="/lib/modules/${KERNEL}/extra/led-ugreen.ko.xz"
+DRIVER_CACHE="${BOOT_DIR}/driver/${KERNEL}/led-ugreen.ko.xz"
+DRIVER_TARGET="/lib/modules/${KERNEL}/extra/led-ugreen.ko.xz"
 
-if [ -f "${SOURCE}" ]; then
+if lsmod | grep -q '^led_ugreen '; then
 
-    echo "[UGREEN LED Control] Driver package found."
+    log "led_ugreen is already loaded, using it."
 
-    mkdir -p "/lib/modules/${KERNEL}/extra"
+elif modinfo led_ugreen >/dev/null 2>&1; then
 
-    SOURCE_HASH="$(sha256sum "${SOURCE}" | awk '{print $1}')"
-
-    if [ -f "${TARGET}" ]; then
-        TARGET_HASH="$(sha256sum "${TARGET}" | awk '{print $1}')"
-    else
-        TARGET_HASH=""
-    fi
-
-    if [ "${SOURCE_HASH}" = "${TARGET_HASH}" ]; then
-
-        echo "[UGREEN LED Control] Existing driver matches."
-
-    else
-
-        echo "[UGREEN LED Control] Installing/updating driver."
-
-        cp "${SOURCE}" "${TARGET}"
-        chmod 644 "${TARGET}"
-
-        echo "installed_by=ugreen-led-control" \
-            > "${BOOT_DIR}/driver-state"
-
-        echo "kernel=${KERNEL}" \
-            >> "${BOOT_DIR}/driver-state"
-
-        echo "sha256=${SOURCE_HASH}" \
-            >> "${BOOT_DIR}/driver-state"
-
-    fi
-
-    depmod -a "${KERNEL}"
-
-    if lsmod | grep -q '^led_ugreen '; then
-
-        echo "[UGREEN LED Control] led_ugreen already loaded."
-
-    else
-
-        echo "[UGREEN LED Control] Loading led_ugreen..."
-
-        modprobe led_ugreen
-
-    fi
+    log "led_ugreen is installed, loading it."
+    modprobe led_ugreen
 
 else
 
-    echo "[UGREEN LED Control] WARNING:"
-    echo "[UGREEN LED Control] No driver package for kernel ${KERNEL}."
-    echo "[UGREEN LED Control] LED control is unavailable."
+    if [ ! -f "${DRIVER_CACHE}" ]; then
+        log "Downloading led_ugreen for ${KERNEL}..."
+        mkdir -p "$(dirname "${DRIVER_CACHE}")"
+        if ! curl -fsSL -o "${DRIVER_CACHE}" \
+            "&gitURL;/driver/packages/${KERNEL}/led-ugreen.ko.xz"; then
+            rm -f "${DRIVER_CACHE}"
+            log "WARNING: No led_ugreen build for kernel ${KERNEL}."
+            log "WARNING: LED control is unavailable until a matching driver exists."
+        fi
+    fi
+
+    if [ -f "${DRIVER_CACHE}" ]; then
+        mkdir -p "$(dirname "${DRIVER_TARGET}")"
+        cp "${DRIVER_CACHE}" "${DRIVER_TARGET}"
+        chmod 644 "${DRIVER_TARGET}"
+        depmod -a "${KERNEL}"
+        if modprobe led_ugreen; then
+            echo "installed_by=&name;" > "${BOOT_DIR}/driver-state"
+            echo "kernel=${KERNEL}" >> "${BOOT_DIR}/driver-state"
+            log "led_ugreen loaded."
+        else
+            log "WARNING: led_ugreen could not be loaded."
+        fi
+    fi
 
 fi
 
 #
-# Install plugin files
+# Web interface
 #
 
-echo "[UGREEN LED Control] Installing web interface."
-
-rm -rf "${PLUGIN_DIR}/backend"
-rm -rf "${PLUGIN_DIR}/css"
-rm -rf "${PLUGIN_DIR}/js"
-
-mkdir -p \
-    "${PLUGIN_DIR}/backend" \
-    "${PLUGIN_DIR}/css" \
-    "${PLUGIN_DIR}/js"
-
-if [ -f "${BOOT_DIR}/backend/ugreen-leds" ]; then
-    cp "${BOOT_DIR}/backend/ugreen-leds" \
-       "${PLUGIN_DIR}/backend/ugreen-leds"
-fi
-
-if [ -f "${BOOT_DIR}/css/app.css" ]; then
-    cp "${BOOT_DIR}/css/app.css" \
-       "${PLUGIN_DIR}/css/app.css"
-fi
-
-if [ -f "${BOOT_DIR}/js/app.js" ]; then
-    cp "${BOOT_DIR}/js/app.js" \
-       "${PLUGIN_DIR}/js/app.js"
-fi
-
-if [ -f "${BOOT_DIR}/UGREENLEDControl.page" ]; then
-    cp "${BOOT_DIR}/UGREENLEDControl.page" \
-       "${PLUGIN_DIR}/UGREENLEDControl.page"
-fi
-
-if [ -f "${BOOT_DIR}/api.php" ]; then
-    cp "${BOOT_DIR}/api.php" \
-       "${PLUGIN_DIR}/api.php"
-fi
-
-chmod +x \
-    "${PLUGIN_DIR}/backend/ugreen-leds" \
-    2>/dev/null || true
+rm -rf "${PLUGIN_DIR}"
+mkdir -p "${PLUGIN_DIR}"
+cp -r "${SRC_DIR}/." "${PLUGIN_DIR}/"
+chmod 755 "${PLUGIN_DIR}/backend/ugreen-leds"
 
 #
-# Store installed version
+# Drop cached files of older versions
 #
 
-echo "${PLUGIN_VERSION}" > "${BOOT_DIR}/version"
+for dir in "${BOOT_DIR}"/*/; do
+    case "$(basename "${dir}")" in
+        "&version;"|driver) ;;
+        *) rm -rf "${dir}" ;;
+    esac
+done
 
-echo ""
-echo "=================================================="
-echo "UGREEN LED CONTROL INSTALL COMPLETE"
-echo "=================================================="
-echo ""
+log "Installation complete."
 
 ]]>
 </INLINE>
@@ -207,81 +159,29 @@ echo ""
 <INLINE>
 <![CDATA[
 
-set +e
+PLUGIN_DIR="/usr/local/emhttp/plugins/&name;"
+BOOT_DIR="&bootDIR;"
+KERNEL="$(uname -r)"
 
-PLUGIN_NAME="ugreen-led-control"
-
-PLUGIN_DIR="/usr/local/emhttp/plugins/${PLUGIN_NAME}"
-BOOT_DIR="/boot/config/plugins/${PLUGIN_NAME}"
-
-echo ""
-echo "=================================================="
-echo "UGREEN LED CONTROL – REMOVE"
-echo "=================================================="
-echo ""
-
-#
-# Read driver ownership
-#
-
-DRIVER_OWNED="false"
-
-if [ -f "${BOOT_DIR}/driver-state" ]; then
-
-    if grep -q '^installed_by=ugreen-led-control$' \
-        "${BOOT_DIR}/driver-state"; then
-
-        DRIVER_OWNED="true"
-
-    fi
-
-fi
-
-#
-# Remove web plugin
-#
+log() {
+    echo "[UGREEN LED Control] $1"
+}
 
 rm -rf "${PLUGIN_DIR}"
 
-#
-# Remove our driver only if WE installed it
-#
-
-if [ "${DRIVER_OWNED}" = "true" ]; then
-
-    KERNEL="$(uname -r)"
-    TARGET="/lib/modules/${KERNEL}/extra/led-ugreen.ko.xz"
-
-    echo "[UGREEN LED Control] Our driver was installed."
-
-    if lsmod | grep -q '^led_ugreen '; then
-
-        echo "[UGREEN LED Control] Unloading led_ugreen."
-
-        modprobe -r led_ugreen 2>/dev/null || true
-
-    fi
-
-    if [ -f "${TARGET}" ]; then
-
-        echo "[UGREEN LED Control] Removing driver."
-
-        rm -f "${TARGET}"
-
-        depmod -a "${KERNEL}"
-
-    fi
-
+# Remove the driver only if this plugin installed it.
+if grep -q '^installed_by=&name;$' "${BOOT_DIR}/driver-state" 2>/dev/null; then
+    log "Removing led_ugreen installed by this plugin."
+    modprobe -r led_ugreen 2>/dev/null
+    rm -f "/lib/modules/${KERNEL}/extra/led-ugreen.ko.xz"
+    depmod -a "${KERNEL}"
 else
-
-    echo "[UGREEN LED Control] Driver was not owned by this plugin."
-    echo "[UGREEN LED Control] Driver will not be removed."
-
+    log "led_ugreen was not installed by this plugin, leaving it."
 fi
 
-echo ""
-echo "UGREEN LED Control removed."
-echo ""
+rm -rf "${BOOT_DIR}"
+
+log "Removed."
 
 ]]>
 </INLINE>
