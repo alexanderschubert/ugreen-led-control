@@ -38,8 +38,8 @@
 
 <!-- Plugin files, cached on the flash drive per version so a reboot needs no network -->
 
-<FILE Name="&srcDIR;/backend/ugreen-leds">
-<URL>&gitURL;/src/backend/ugreen-leds</URL>
+<FILE Name="&srcDIR;/backend/ugreen-led-ctl">
+<URL>&gitURL;/src/backend/ugreen-led-ctl</URL>
 </FILE>
 
 <FILE Name="&srcDIR;/api.php">
@@ -132,7 +132,7 @@ fi
 rm -rf "${PLUGIN_DIR}"
 mkdir -p "${PLUGIN_DIR}"
 cp -r "${SRC_DIR}/." "${PLUGIN_DIR}/"
-chmod 755 "${PLUGIN_DIR}/backend/ugreen-leds"
+chmod 755 "${PLUGIN_DIR}/backend/ugreen-led-ctl"
 
 #
 # Drop cached files of older versions

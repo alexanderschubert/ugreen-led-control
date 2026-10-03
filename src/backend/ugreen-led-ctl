@@ -33,18 +33,18 @@ usage() {
 UGREEN LED Control
 
 Usage:
-  ugreen-leds status
-  ugreen-leds list
-  ugreen-leds get <led>
-  ugreen-leds on <led>
-  ugreen-leds off <led>
-  ugreen-leds brightness <led> <0-255>
-  ugreen-leds color <led> <R> <G> <B>
-  ugreen-leds blink <led> <on_ms> <off_ms>
-  ugreen-leds breath <led> <on_ms> <off_ms>
-  ugreen-leds stop <led>
-  ugreen-leds trigger <led> <trigger>
-  ugreen-leds help
+  ugreen-led-ctl status
+  ugreen-led-ctl list
+  ugreen-led-ctl get <led>
+  ugreen-led-ctl on <led>
+  ugreen-led-ctl off <led>
+  ugreen-led-ctl brightness <led> <0-255>
+  ugreen-led-ctl color <led> <R> <G> <B>
+  ugreen-led-ctl blink <led> <on_ms> <off_ms>
+  ugreen-led-ctl breath <led> <on_ms> <off_ms>
+  ugreen-led-ctl stop <led>
+  ugreen-led-ctl trigger <led> <trigger>
+  ugreen-led-ctl help
 
 Supported LEDs:
   power
