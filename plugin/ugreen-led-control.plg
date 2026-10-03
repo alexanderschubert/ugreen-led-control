@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.2.0">
+<!ENTITY version   "0.2.1">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -23,6 +23,9 @@
 >
 
 <CHANGES>
+
+### 0.2.1
+- Fix: the install script copied nothing, because plugin entities are not expanded inside CDATA
 
 ### 0.2.0
 - Plugin downloads its files from GitHub instead of expecting them on the flash drive
@@ -64,20 +67,24 @@
 <!-- INSTALL -->
 <!-- ========================================================= -->
 
+<!-- Entities are not expanded inside CDATA, so the scripts get them as variables first. -->
 <FILE Run="/bin/bash">
 <INLINE>
-<![CDATA[
-
-PLUGIN_DIR="/usr/local/emhttp/plugins/&name;"
+NAME="&name;"
+VERSION="&version;"
+GIT_URL="&gitURL;"
 BOOT_DIR="&bootDIR;"
 SRC_DIR="&srcDIR;"
+<![CDATA[
+
+PLUGIN_DIR="/usr/local/emhttp/plugins/${NAME}"
 KERNEL="$(uname -r)"
 
 log() {
     echo "[UGREEN LED Control] $1"
 }
 
-log "Installing &version; on kernel ${KERNEL}"
+log "Installing ${VERSION} on kernel ${KERNEL}"
 
 #
 # Driver
@@ -104,7 +111,7 @@ else
         log "Downloading led_ugreen for ${KERNEL}..."
         mkdir -p "$(dirname "${DRIVER_CACHE}")"
         if ! curl -fsSL -o "${DRIVER_CACHE}" \
-            "&gitURL;/driver/packages/${KERNEL}/led-ugreen.ko.xz"; then
+            "${GIT_URL}/driver/packages/${KERNEL}/led-ugreen.ko.xz"; then
             rm -f "${DRIVER_CACHE}"
             log "WARNING: No led_ugreen build for kernel ${KERNEL}."
             log "WARNING: LED control is unavailable until a matching driver exists."
@@ -117,7 +124,7 @@ else
         chmod 644 "${DRIVER_TARGET}"
         depmod -a "${KERNEL}"
         if modprobe led_ugreen; then
-            echo "installed_by=&name;" > "${BOOT_DIR}/driver-state"
+            echo "installed_by=${NAME}" > "${BOOT_DIR}/driver-state"
             echo "kernel=${KERNEL}" >> "${BOOT_DIR}/driver-state"
             log "led_ugreen loaded."
         else
@@ -142,7 +149,7 @@ chmod 755 "${PLUGIN_DIR}/backend/ugreen-led-ctl"
 
 for dir in "${BOOT_DIR}"/*/; do
     case "$(basename "${dir}")" in
-        "&version;"|driver) ;;
+        "${VERSION}"|driver) ;;
         *) rm -rf "${dir}" ;;
     esac
 done
@@ -159,10 +166,11 @@ log "Installation complete."
 
 <FILE Run="/bin/bash" Method="remove">
 <INLINE>
+NAME="&name;"
+BOOT_DIR="&bootDIR;"
 <![CDATA[
 
-PLUGIN_DIR="/usr/local/emhttp/plugins/&name;"
-BOOT_DIR="&bootDIR;"
+PLUGIN_DIR="/usr/local/emhttp/plugins/${NAME}"
 KERNEL="$(uname -r)"
 
 log() {
@@ -172,7 +180,7 @@ log() {
 rm -rf "${PLUGIN_DIR}"
 
 # Remove the driver only if this plugin installed it.
-if grep -q '^installed_by=&name;$' "${BOOT_DIR}/driver-state" 2>/dev/null; then
+if grep -q "^installed_by=${NAME}\$" "${BOOT_DIR}/driver-state" 2>/dev/null; then
     log "Removing led_ugreen installed by this plugin."
     modprobe -r led_ugreen 2>/dev/null
     rm -f "/lib/modules/${KERNEL}/extra/led-ugreen.ko.xz"
