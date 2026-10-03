@@ -1,7 +1,7 @@
 # Architecture
 
 - `plugin/ugreen-led-control.plg` – Unraid plugin: loads `led_ugreen` if no other plugin did, installs the web files.
-- `src/backend/ugreen-leds` – CLI over `/sys/class/leds`, prints JSON for reads.
+- `src/backend/ugreen-led-ctl` – CLI over `/sys/class/leds`, prints JSON for reads.
 - `src/web/api.php` – JSON API used by the settings page.
 - `src/web/UGREENLEDControl.page`, `js/`, `css/` – the settings page.
 

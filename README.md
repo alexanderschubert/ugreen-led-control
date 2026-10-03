@@ -15,7 +15,7 @@ The settings page is at Settings → UGREEN LED Control.
 ## How it works
 
 - `led_ugreen` (see [driver/](driver/README.md)) exposes the LEDs as `/sys/class/leds/{power,netdev,disk1..8}`.
-- `src/backend/ugreen-leds` reads and writes those sysfs files.
+- `src/backend/ugreen-led-ctl` reads and writes those sysfs files.
 - `src/web/api.php` is the JSON API for the settings page; writes need the WebGUI `csrf_token`.
 
 ## Development

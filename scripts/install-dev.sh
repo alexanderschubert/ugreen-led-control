@@ -15,8 +15,8 @@ mkdir -p "$DEST/backend"
 mkdir -p "$DEST/css"
 mkdir -p "$DEST/js"
 
-cp "$ROOT/src/backend/ugreen-leds" \
-   "$DEST/backend/ugreen-leds"
+cp "$ROOT/src/backend/ugreen-led-ctl" \
+   "$DEST/backend/ugreen-led-ctl"
 
 cp "$ROOT/src/web/api.php" \
    "$DEST/api.php"
@@ -30,7 +30,7 @@ cp "$ROOT/src/web/css/app.css" \
 cp "$ROOT/src/web/js/app.js" \
    "$DEST/js/app.js"
 
-chmod 755 "$DEST/backend/ugreen-leds"
+chmod 755 "$DEST/backend/ugreen-led-ctl"
 chmod 644 "$DEST/api.php"
 chmod 644 "$DEST/UGREENLEDControl.page"
 chmod 644 "$DEST/css/app.css"

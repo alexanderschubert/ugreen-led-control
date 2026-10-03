@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 
-$backend = '/usr/local/emhttp/plugins/ugreen-led-control/backend/ugreen-leds';
+$backend = '/usr/local/emhttp/plugins/ugreen-led-control/backend/ugreen-led-ctl';
 
 if (!is_file($backend) || !is_executable($backend)) {
     http_response_code(500);

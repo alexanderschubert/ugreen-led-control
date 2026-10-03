@@ -1,6 +1,7 @@
-Menu="Settings:1"
+Menu="Utilities"
 Title="UGREEN LED Control"
 Icon="lightbulb-o"
+Markdown="false"
 ---
 
 <?php
@@ -19,7 +20,7 @@ window.UGREEN_LED_CSRF_TOKEN = <?= json_encode($ugreen_led_csrf_token) ?>;
 
 <link
     rel="stylesheet"
-    href="/plugins/ugreen-led-control/css/app.css"
+    href="<?autov('/plugins/ugreen-led-control/css/app.css')?>"
 >
 
 <div class="app">
@@ -655,11 +656,6 @@ window.UGREEN_LED_CSRF_TOKEN = <?= json_encode($ugreen_led_csrf_token) ?>;
 
     </div>
 
-    <div
-        id="led-message"
-        class="message"
-    ></div>
-
 </div>
 
 </section>
@@ -763,6 +759,6 @@ window.UGREEN_LED_CSRF_TOKEN = <?= json_encode($ugreen_led_csrf_token) ?>;
     class="message"
 ></div>
 
-<script src="/plugins/ugreen-led-control/js/app.js"></script>
+<script src="<?autov('/plugins/ugreen-led-control/js/app.js')?>"></script>
 
 </div>
