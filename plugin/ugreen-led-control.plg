@@ -30,6 +30,8 @@
 - Only the bays the model really has are shown (DXP6800 Pro: 6)
 - Reading an LED returns valid JSON again
 - An led_ugreen driver loaded by another plugin is left alone
+- Success and error messages are visible
+- The page lives at Settings → User Utilities → UGREEN LED Control
 
 ### 0.1.0
 - Initial release
