@@ -24,7 +24,8 @@ func TestPeriodParams(t *testing.T) {
 	}
 
 	// Clamped to 100..0x7fff like the kernel driver.
-	if got, want := periodParams(10, 99999), [4]byte{byte((100 + 0x7fff) >> 8), byte(100 + 0x7fff), 0, 100}; got != want {
+	const cycle = 100 + 0x7fff
+	if got, want := periodParams(10, 99999), [4]byte{cycle >> 8, cycle & 0xff, 0, 100}; got != want {
 		t.Fatalf("clamped periodParams = % x, want % x", got, want)
 	}
 }
