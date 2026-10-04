@@ -8,6 +8,17 @@ $ulc_var = is_file('/var/local/emhttp/var.ini')
     ? parse_ini_file('/var/local/emhttp/var.ini')
     : [];
 
+// Interface language: the saved choice, or Unraid's own language for "auto".
+$ulc_settings = is_file('/boot/config/plugins/ugreen-led-control/leds.cfg')
+    ? (parse_ini_file('/boot/config/plugins/ugreen-led-control/leds.cfg') ?: [])
+    : [];
+$ulc_dynamix = is_file('/boot/config/plugins/dynamix/dynamix.cfg')
+    ? (parse_ini_file('/boot/config/plugins/dynamix/dynamix.cfg', true) ?: [])
+    : [];
+$ulc_unraid_lang = str_starts_with((string)($ulc_dynamix['display']['locale'] ?? ''), 'de') ? 'de' : 'en';
+$ulc_lang_setting = in_array($ulc_settings['ui_lang'] ?? '', ['de', 'en'], true) ? $ulc_settings['ui_lang'] : 'auto';
+$ulc_lang = $ulc_lang_setting === 'auto' ? $ulc_unraid_lang : $ulc_lang_setting;
+
 $ulc_version = preg_match(
     '/ENTITY\s+version\s+"([^"]+)"/',
     (string)@file_get_contents('/boot/config/plugins/ugreen-led-control.plg'),
@@ -18,6 +29,8 @@ $ulc_version = preg_match(
 <script>
 window.UGREEN_LED_CSRF_TOKEN = <?= json_encode($ulc_var['csrf_token'] ?? '') ?>;
 window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
+window.UGREEN_LED_LANG = <?= json_encode($ulc_lang) ?>;
+window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
 </script>
 
 <link rel="stylesheet" href="<?autov('/plugins/ugreen-led-control/css/app.css')?>">
@@ -35,13 +48,13 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
     </div>
 
     <nav class="ulc-nav">
-        <button type="button" class="active" data-nav="overview"><span class="ulc-ico" data-ulc-icon="home"></span>Übersicht</button>
-        <button type="button" data-nav="leds"><span class="ulc-ico" data-ulc-icon="bulb"></span>LED Einstellungen</button>
-        <button type="button" data-nav="drives"><span class="ulc-ico" data-ulc-icon="drives"></span>Laufwerke</button>
-        <button type="button" data-nav="effects"><span class="ulc-ico" data-ulc-icon="sparkles"></span>Effekte</button>
-        <button type="button" data-nav="schedules"><span class="ulc-ico" data-ulc-icon="clock"></span>Zeitpläne</button>
-        <button type="button" data-nav="system"><span class="ulc-ico" data-ulc-icon="gear"></span>System</button>
-        <button type="button" data-nav="about"><span class="ulc-ico" data-ulc-icon="info"></span>Über</button>
+        <button type="button" class="active" data-nav="overview"><span class="ulc-ico" data-ulc-icon="home"></span><span data-i18n="nav.overview">Übersicht</span></button>
+        <button type="button" data-nav="leds"><span class="ulc-ico" data-ulc-icon="bulb"></span><span data-i18n="nav.leds">LED Einstellungen</span></button>
+        <button type="button" data-nav="drives"><span class="ulc-ico" data-ulc-icon="drives"></span><span data-i18n="nav.drives">Laufwerke</span></button>
+        <button type="button" data-nav="effects"><span class="ulc-ico" data-ulc-icon="sparkles"></span><span data-i18n="nav.effects">Effekte</span></button>
+        <button type="button" data-nav="schedules"><span class="ulc-ico" data-ulc-icon="clock"></span><span data-i18n="nav.schedules">Zeitpläne</span></button>
+        <button type="button" data-nav="system"><span class="ulc-ico" data-ulc-icon="gear"></span><span data-i18n="nav.system">System</span></button>
+        <button type="button" data-nav="about"><span class="ulc-ico" data-ulc-icon="info"></span><span data-i18n="nav.about">Über</span></button>
     </nav>
 
 </aside>
@@ -50,14 +63,14 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
 
 <header class="ulc-head">
     <div>
-        <h1>UGREEN LED Control <span class="ulc-badge" id="ulc-online">Verbinde…</span> <span class="ulc-badge night" id="ulc-night-badge" hidden>Nachtmodus</span></h1>
-        <p>Steuerung der LED-Beleuchtung deines <span data-model>UGREEN NAS</span> direkt in Unraid.</p>
+        <h1>UGREEN LED Control <span class="ulc-badge" id="ulc-online" data-i18n="head.connecting">Verbinde…</span> <span class="ulc-badge night" id="ulc-night-badge" data-i18n="head.night" hidden>Nachtmodus</span></h1>
+        <p data-i18n-html="head.subtitle">Steuerung der LED-Beleuchtung deines <span data-model>UGREEN NAS</span> direkt in Unraid.</p>
     </div>
     <div class="ulc-banner" id="ulc-banner" hidden>
         <span class="ulc-banner-icon"><span class="ulc-ico" data-ulc-icon="check"></span></span>
         <div>
-            <strong>NAS verbunden</strong>
-            <small><span data-model>UGREEN NAS</span> erkannt</small>
+            <strong data-i18n="banner.connected">NAS verbunden</strong>
+            <small data-i18n-html="banner.detected"><span data-model>UGREEN NAS</span> erkannt</small>
         </div>
     </div>
 </header>
@@ -65,9 +78,8 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
 <div class="ulc-warning" id="ulc-foreign" hidden>
     <span class="ulc-ico" data-ulc-icon="alert"></span>
     <div>
-        <strong>Der LED-Monitor von „ugreenleds-driver“ läuft.</strong>
-        Er setzt Laufwerks- und Netzwerk-LED laufend auf seine eigenen Farben zurück.
-        Zum Testen kannst du ihn mit <code>pkill -f /usr/bin/ugreen-leds</code> bis zum nächsten Neustart beenden.
+        <strong data-i18n="warn.title">Der LED-Monitor von „ugreenleds-driver“ läuft.</strong>
+        <span data-i18n-html="warn.text">Er setzt Laufwerks- und Netzwerk-LED laufend auf seine eigenen Farben zurück. Zum Testen kannst du ihn mit <code>pkill -f /usr/bin/ugreen-leds</code> bis zum nächsten Neustart beenden.</span>
     </div>
 </div>
 
@@ -79,7 +91,7 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
     <div class="ulc-col">
 
         <article class="ulc-card">
-            <h2>Allgemeine Einstellungen</h2>
+            <h2 data-i18n="general.title">Allgemeine Einstellungen</h2>
 
             <label class="ulc-switch-row">
                 <span class="ulc-switch">
@@ -87,29 +99,29 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
                     <span></span>
                 </span>
                 <span>
-                    <strong>LED-Steuerung aktivieren</strong>
-                    <small>Schaltet alle LEDs am NAS ein oder aus. Änderungen bleiben nach einem Neustart erhalten.</small>
+                    <strong data-i18n="general.enable">LED-Steuerung aktivieren</strong>
+                    <small data-i18n="general.enable_hint">Schaltet alle LEDs am NAS ein oder aus. Änderungen bleiben nach einem Neustart erhalten.</small>
                 </span>
             </label>
 
             <div class="ulc-slider-row">
                 <span class="ulc-ico" data-ulc-icon="sun"></span>
                 <div>
-                    <span>Helligkeit (gesamt)</span>
+                    <span data-i18n="general.brightness">Helligkeit (gesamt)</span>
                     <input type="range" id="ulc-brightness" min="0" max="100" step="1" value="80">
                 </div>
                 <output class="ulc-value" id="ulc-brightness-value">80%</output>
             </div>
 
             <div class="ulc-field-row">
-                <label for="ulc-mode">Standardmodus</label>
+                <label for="ulc-mode" data-i18n="general.mode">Standardmodus</label>
                 <select id="ulc-mode">
-                    <option value="manual" selected>Manuell</option>
-                    <option value="status">Statusbasiert</option>
+                    <option value="manual" selected data-i18n="mode.manual">Manuell</option>
+                    <option value="status" data-i18n="mode.status">Statusbasiert</option>
                 </select>
             </div>
 
-            <p class="ulc-hint" id="ulc-mode-hint" hidden>
+            <p class="ulc-hint" id="ulc-mode-hint" data-i18n="mode.hint" hidden>
                 Laufwerks-LEDs leuchten in ihrer Farbe, blinken bei Zugriffen und zeigen bei Fehlern die Fehlerfarbe.
                 Die Netzwerk-LED blinkt bei Datenverkehr und zeigt ohne Verbindung die Fehlerfarbe.
                 Effekte gelten in diesem Modus nur für die Power-LED.
@@ -117,11 +129,11 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
         </article>
 
         <article class="ulc-card">
-            <h2>LED Farben</h2>
+            <h2 data-i18n="colors.title">LED Farben</h2>
 
             <div class="ulc-tabs" role="tablist">
-                <button type="button" class="active" data-tab="system">System LEDs</button>
-                <button type="button" data-tab="bays">Laufwerk LEDs</button>
+                <button type="button" class="active" data-tab="system" data-i18n="colors.tab_system">System LEDs</button>
+                <button type="button" data-tab="bays" data-i18n="colors.tab_bays">Laufwerk LEDs</button>
             </div>
 
             <div class="ulc-color-list" id="ulc-colors"></div>
@@ -129,7 +141,7 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
 
         <div data-slot="effects-home">
             <article class="ulc-card" id="ulc-effects-card">
-                <h2>LED Effekte</h2>
+                <h2 data-i18n="effects.title">LED Effekte</h2>
                 <div class="ulc-effects" id="ulc-effects"></div>
             </article>
         </div>
@@ -143,42 +155,42 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
         </div>
 
         <article class="ulc-card">
-            <h2>Vorschau / Live-Test</h2>
+            <h2 data-i18n="preview.title">Vorschau / Live-Test</h2>
             <div class="ulc-preview">
                 <div class="ulc-nas" data-nas></div>
             </div>
             <div class="ulc-actions">
-                <button type="button" class="ulc-btn primary" id="ulc-test"><span class="ulc-ico" data-ulc-icon="play"></span>Testen</button>
-                <button type="button" class="ulc-btn" id="ulc-reset"><span class="ulc-ico" data-ulc-icon="refresh"></span>Auf Standard zurücksetzen</button>
+                <button type="button" class="ulc-btn primary" id="ulc-test"><span class="ulc-ico" data-ulc-icon="play"></span><span data-i18n="preview.test">Testen</span></button>
+                <button type="button" class="ulc-btn" id="ulc-reset"><span class="ulc-ico" data-ulc-icon="refresh"></span><span data-i18n="preview.reset">Auf Standard zurücksetzen</span></button>
             </div>
         </article>
 
         <div data-slot="settings-home">
             <article class="ulc-card" id="ulc-settings-card">
-                <h2>Effekt Einstellungen</h2>
+                <h2 data-i18n="fxset.title">Effekt Einstellungen</h2>
 
                 <div class="ulc-form">
-                    <label for="ulc-target">Anwenden auf</label>
+                    <label for="ulc-target" data-i18n="fxset.target">Anwenden auf</label>
                     <select id="ulc-target">
-                        <option value="all">Alle LEDs</option>
-                        <option value="disks">Alle Laufwerk-LEDs</option>
-                        <option value="power">Power LED</option>
-                        <option value="netdev">Netzwerk LED</option>
+                        <option value="all" data-i18n="target.all">Alle LEDs</option>
+                        <option value="disks" data-i18n="target.disks">Alle Laufwerk-LEDs</option>
+                        <option value="power" data-i18n="target.power">Power LED</option>
+                        <option value="netdev" data-i18n="target.netdev">Netzwerk LED</option>
                     </select>
 
-                    <label for="ulc-speed">Geschwindigkeit</label>
+                    <label for="ulc-speed" data-i18n="fxset.speed">Geschwindigkeit</label>
                     <div class="ulc-inline">
                         <input type="range" id="ulc-speed" min="0" max="4" step="1" value="2">
                         <output class="ulc-value" id="ulc-speed-value">Mittel</output>
                     </div>
 
-                    <label for="ulc-direction">Richtung</label>
+                    <label for="ulc-direction" data-i18n="fxset.direction">Richtung</label>
                     <select id="ulc-direction">
-                        <option value="forward">Vorwärts</option>
-                        <option value="backward">Rückwärts</option>
+                        <option value="forward" data-i18n="dir.forward">Vorwärts</option>
+                        <option value="backward" data-i18n="dir.backward">Rückwärts</option>
                     </select>
 
-                    <label>Regenbogen</label>
+                    <label data-i18n="fxset.rainbow">Regenbogen</label>
                     <div class="ulc-palette" aria-hidden="true">
                         <span style="--c:#ff3b30"></span><span style="--c:#ff9500"></span><span style="--c:#ffd60a"></span><span style="--c:#34c759"></span><span style="--c:#32d4f5"></span><span style="--c:#0a84ff"></span><span style="--c:#bf5af2"></span>
                     </div>
@@ -190,8 +202,8 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
                         <span></span>
                     </span>
                     <span>
-                        <strong>Nur im Leerlauf ausführen</strong>
-                        <small>Regenbogen und Temperatur pausieren, solange eine Platte arbeitet.</small>
+                        <strong data-i18n="fxset.idle">Nur im Leerlauf ausführen</strong>
+                        <small data-i18n="fxset.idle_hint">Regenbogen und Temperatur pausieren, solange eine Platte arbeitet.</small>
                     </span>
                 </label>
             </article>
@@ -206,9 +218,9 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
 
 <section class="ulc-view" data-view="leds">
     <article class="ulc-card">
-        <h2>LED Einstellungen</h2>
-        <p class="ulc-muted">Jede LED einzeln: Farbe, Helligkeit und Effekt werden sofort übernommen.</p>
-        <p class="ulc-hint" data-status-hint hidden>
+        <h2 data-i18n="leds.title">LED Einstellungen</h2>
+        <p class="ulc-muted" data-i18n="leds.intro">Jede LED einzeln: Farbe, Helligkeit und Effekt werden sofort übernommen.</p>
+        <p class="ulc-hint" data-status-hint data-i18n="status.hint" hidden>
             Statusmodus aktiv: Laufwerks- und Netzwerk-LED zeigen Aktivität und Fehler. Farbe und Helligkeit stellst du hier ein, Effekte gelten nur für die Power-LED.
         </p>
         <div class="ulc-table" id="ulc-led-table"></div>
@@ -219,16 +231,16 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
 
 <section class="ulc-view" data-view="drives">
     <article class="ulc-card">
-        <h2>Laufwerke</h2>
-        <p class="ulc-muted">Die LED unter jedem Schacht. Schacht 1 ist ganz links.</p>
-        <p class="ulc-hint" data-status-hint hidden>
+        <h2 data-i18n="drives.title">Laufwerke</h2>
+        <p class="ulc-muted" data-i18n="drives.intro">Die LED unter jedem Schacht. Schacht 1 ist ganz links.</p>
+        <p class="ulc-hint" data-status-hint data-i18n="status.hint" hidden>
             Statusmodus aktiv: Laufwerks- und Netzwerk-LED zeigen Aktivität und Fehler. Farbe und Helligkeit stellst du hier ein, Effekte gelten nur für die Power-LED.
         </p>
         <div class="ulc-table" id="ulc-bay-table"></div>
     </article>
     <article class="ulc-card">
-        <h2>Zuordnung &amp; Status</h2>
-        <p class="ulc-muted">Welche Platte in welchem Schacht steckt und wie Unraid sie meldet. Im Statusmodus zeigen die LEDs genau das an.</p>
+        <h2 data-i18n="bays.title">Zuordnung &amp; Status</h2>
+        <p class="ulc-muted" data-i18n="bays.intro">Welche Platte in welchem Schacht steckt und wie Unraid sie meldet. Im Statusmodus zeigen die LEDs genau das an.</p>
         <div class="ulc-bays" id="ulc-bays"></div>
     </article>
 </section>
@@ -246,8 +258,8 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
 
 <section class="ulc-view" data-view="schedules">
     <article class="ulc-card">
-        <h2>Nachtmodus</h2>
-        <p class="ulc-muted">Jeden Tag zu festen Zeiten dimmen oder ausschalten – auch über Mitternacht, z. B. 22:00 bis 07:00. Im Statusmodus folgen Laufwerks- und Netzwerk-LED; ausgeschaltete LEDs blinken nachts nicht.</p>
+        <h2 data-i18n="night.title">Nachtmodus</h2>
+        <p class="ulc-muted" data-i18n="night.intro">Jeden Tag zu festen Zeiten dimmen oder ausschalten – auch über Mitternacht, z. B. 22:00 bis 07:00. Im Statusmodus folgen Laufwerks- und Netzwerk-LED; ausgeschaltete LEDs blinken nachts nicht.</p>
 
         <label class="ulc-switch-row">
             <span class="ulc-switch">
@@ -255,25 +267,25 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
                 <span></span>
             </span>
             <span>
-                <strong>Nachtmodus aktivieren</strong>
+                <strong data-i18n="night.enable">Nachtmodus aktivieren</strong>
                 <small id="ulc-night-state">—</small>
             </span>
         </label>
 
         <div class="ulc-form">
-            <label for="ulc-night-start">Beginn</label>
+            <label for="ulc-night-start" data-i18n="night.start">Beginn</label>
             <input type="time" id="ulc-night-start" value="22:00">
 
-            <label for="ulc-night-end">Ende</label>
+            <label for="ulc-night-end" data-i18n="night.end">Ende</label>
             <input type="time" id="ulc-night-end" value="07:00">
 
-            <label for="ulc-night-action">Verhalten</label>
+            <label for="ulc-night-action" data-i18n="night.action">Verhalten</label>
             <select id="ulc-night-action">
-                <option value="dim">Dimmen</option>
-                <option value="off">Ausschalten</option>
+                <option value="dim" data-i18n="night.dim">Dimmen</option>
+                <option value="off" data-i18n="night.off">Ausschalten</option>
             </select>
 
-            <label for="ulc-night-brightness">Helligkeit nachts</label>
+            <label for="ulc-night-brightness" data-i18n="night.brightness">Helligkeit nachts</label>
             <div class="ulc-inline">
                 <input type="range" id="ulc-night-brightness" min="1" max="100" step="1" value="8">
                 <output class="ulc-value" id="ulc-night-brightness-value">8%</output>
@@ -281,7 +293,7 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
         </div>
 
         <div class="ulc-actions">
-            <button type="button" class="ulc-btn primary" id="ulc-night-save"><span class="ulc-ico" data-ulc-icon="check"></span>Speichern</button>
+            <button type="button" class="ulc-btn primary" id="ulc-night-save"><span class="ulc-ico" data-ulc-icon="check"></span><span data-i18n="common.save">Speichern</span></button>
         </div>
     </article>
 </section>
@@ -290,8 +302,19 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
 
 <section class="ulc-view" data-view="system">
     <article class="ulc-card">
-        <h2>System</h2>
+        <h2 data-i18n="system.title">System</h2>
         <dl class="ulc-facts" id="ulc-facts"></dl>
+    </article>
+    <article class="ulc-card">
+        <h2 data-i18n="language.title">Sprache</h2>
+        <div class="ulc-field-row">
+            <label for="ulc-language" data-i18n="language.label">Sprache der Oberfläche</label>
+            <select id="ulc-language">
+                <option value="auto" data-i18n="language.auto">Automatisch (wie Unraid)</option>
+                <option value="de">Deutsch</option>
+                <option value="en">English</option>
+            </select>
+        </div>
     </article>
 </section>
 
@@ -299,12 +322,12 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
 
 <section class="ulc-view" data-view="about">
     <article class="ulc-card">
-        <h2>Über</h2>
+        <h2 data-i18n="about.title">Über</h2>
         <dl class="ulc-facts">
             <dt>Plugin</dt><dd>UGREEN LED Control <span id="ulc-version"></span></dd>
-            <dt>Quellcode</dt><dd><a href="https://github.com/alexanderschubert/ugreen-led-control" target="_blank" rel="noopener">github.com/alexanderschubert/ugreen-led-control</a></dd>
-            <dt>Protokoll</dt><dd>nach <a href="https://github.com/miskcoo/ugreen_leds_controller" target="_blank" rel="noopener">miskcoo/ugreen_leds_controller</a>, ohne Kernel-Modul</dd>
-            <dt>Lizenz</dt><dd>MIT</dd>
+            <dt data-i18n="about.source">Quellcode</dt><dd><a href="https://github.com/alexanderschubert/ugreen-led-control" target="_blank" rel="noopener">github.com/alexanderschubert/ugreen-led-control</a></dd>
+            <dt data-i18n="about.protocol">Protokoll</dt><dd data-i18n-html="about.protocol_text">nach <a href="https://github.com/miskcoo/ugreen_leds_controller" target="_blank" rel="noopener">miskcoo/ugreen_leds_controller</a>, ohne Kernel-Modul</dd>
+            <dt data-i18n="about.license">Lizenz</dt><dd>MIT</dd>
         </dl>
     </article>
 </section>
@@ -315,4 +338,5 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
 
 </div>
 
+<script src="<?autov('/plugins/ugreen-led-control/js/i18n.js')?>"></script>
 <script src="<?autov('/plugins/ugreen-led-control/js/app.js')?>"></script>

@@ -47,6 +47,9 @@ cp "$ROOT/src/web/css/app.css" \
 cp "$ROOT/src/web/js/app.js" \
    "$DEST/js/app.js"
 
+cp "$ROOT/src/web/js/i18n.js" \
+   "$DEST/js/i18n.js"
+
 # The binary comes from CI (build/ugreen-led-i2c, ignored by git) or a release.
 if [ -f "$ROOT/build/ugreen-led-i2c" ]; then
     cp "$ROOT/build/ugreen-led-i2c" "$DEST/backend/ugreen-led-i2c"
@@ -59,7 +62,7 @@ chmod 755 "$DEST/backend/ugreen-led-ctl" "$DEST/backend/ugreen-led-i2c"
 chmod 644 "$DEST/api.php"
 chmod 644 "$DEST/UGREENLEDControl.page"
 chmod 644 "$DEST/css/app.css"
-chmod 644 "$DEST/js/app.js"
+chmod 644 "$DEST/js/app.js" "$DEST/js/i18n.js"
 
 "$DEST/backend/ugreen-led-ctl" apply
 if grep -qx 'mode="status"' /boot/config/plugins/ugreen-led-control/leds.cfg 2>/dev/null; then

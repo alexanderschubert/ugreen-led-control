@@ -6,6 +6,13 @@
 
     if (!root) return;
 
+    const LANG = window.UGREEN_LED_LANG === 'en' ? 'en' : 'de';
+    const TEXTS = window.ULC_I18N || { de: {}, en: {} };
+
+    // t('led.bay', { n: 2 }) -> "Schacht 2" / "Bay 2"; German fills gaps in other languages.
+    const t = (key, vars = {}) => String(TEXTS[LANG][key] ?? TEXTS.de[key] ?? key)
+        .replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ''));
+
     const q = selector => root.querySelector(selector);
     const qa = selector => [...root.querySelectorAll(selector)];
     const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -52,20 +59,20 @@
 
     // on/off times in ms that the driver accepts for breath and blink.
     const SPEEDS = [
-        { label: 'Sehr langsam', breath: [3000, 2000], blink: [1000, 1000] },
-        { label: 'Langsam', breath: [2000, 1500], blink: [700, 700] },
-        { label: 'Mittel', breath: [1200, 900], blink: [450, 450] },
-        { label: 'Schnell', breath: [700, 500], blink: [250, 250] },
-        { label: 'Sehr schnell', breath: [400, 300], blink: [120, 120] }
+        { label: 'speed.0', breath: [3000, 2000], blink: [1000, 1000] },
+        { label: 'speed.1', breath: [2000, 1500], blink: [700, 700] },
+        { label: 'speed.2', breath: [1200, 900], blink: [450, 450] },
+        { label: 'speed.3', breath: [700, 500], blink: [250, 250] },
+        { label: 'speed.4', breath: [400, 300], blink: [120, 120] }
     ];
 
     const EFFECTS = [
-        { id: 'static', name: 'Statisch', text: 'Feste Farbe', icon: 'bulb' },
-        { id: 'breath', name: 'Atmen', text: 'Sanftes Ein- und Ausblenden', icon: 'wave' },
-        { id: 'blink', name: 'Pulsierend', text: 'Gleichmäßiges Blinken', icon: 'activity' },
-        { id: 'rainbow', name: 'Regenbogen', text: 'Automatischer Farbwechsel', icon: 'rainbow', software: true },
-        { id: 'temperature', name: 'Temperatur', text: 'Farbe nach CPU-Temperatur', icon: 'thermo', software: true },
-        { id: 'off', name: 'Deaktiviert', text: 'LEDs ausschalten', icon: 'power' }
+        { id: 'static', icon: 'bulb' },
+        { id: 'breath', icon: 'wave' },
+        { id: 'blink', icon: 'activity' },
+        { id: 'rainbow', icon: 'rainbow', software: true },
+        { id: 'temperature', icon: 'thermo', software: true },
+        { id: 'off', icon: 'power' }
     ];
 
     const state = {
@@ -103,9 +110,11 @@
     const managed = led => statusMode() && (led === 'netdev' || led.startsWith('disk'));
 
     const ledLabel = led =>
-        led === 'power' ? 'Power LED'
-            : led === 'netdev' ? 'Netzwerk LED'
-                : `Schacht ${led.slice(4)}`;
+        led === 'power' ? t('led.power')
+            : led === 'netdev' ? t('led.netdev')
+                : t('led.bay', { n: led.slice(4) });
+
+    const effectName = id => t(`effect.${id}`);
 
     /*
      * ---------------------------------------------------------
@@ -192,11 +201,13 @@
         try {
             data = JSON.parse(text);
         } catch (error) {
-            throw new Error(`Ungültige API-Antwort (HTTP ${response.status})`);
+            throw new Error(t('error.response', { status: response.status }));
         }
 
         if (!response.ok || data.ok === false) {
-            throw new Error(data.error || `API-Fehler (HTTP ${response.status})`);
+            // Known api.php messages are translated by their English text.
+            const message = data.error && TEXTS[LANG][`api.${data.error}`];
+            throw new Error(message || data.error || t('error.api', { status: response.status }));
         }
 
         return data;
@@ -304,7 +315,7 @@
     function renderStatus(online, error) {
         const badge = q('#ulc-online');
 
-        badge.textContent = online ? 'Online' : 'Offline';
+        badge.textContent = online ? t('online') : t('offline');
         badge.className = `ulc-badge ${online ? 'online' : 'offline'}`;
         badge.title = error || '';
 
@@ -318,16 +329,18 @@
         q('#ulc-version').textContent = window.UGREEN_LED_VERSION || '';
 
         const facts = [
-            ['Modell', state.model],
-            ['Laufwerksschächte', state.bays || '—'],
-            ['Ansteuerung', state.status.controller || '—'],
-            ['LED-Controller', state.status.i2c_address ? `angemeldet (I²C-Bus ${state.status.i2c_bus}, Adresse ${state.status.i2c_address})` : 'nicht angemeldet – keine LEDs verfügbar'],
-            ['LEDs gefunden', state.order.length ? state.order.join(', ') : 'keine'],
-            ['Kernel', state.status.kernel || '—'],
-            ['ugreenleds-driver Monitor', state.status.foreign_monitor ? 'läuft (überschreibt Laufwerks- und Netzwerk-LED)' : 'läuft nicht'],
-            ['Gespeicherte Einstellungen', state.status.settings_saved ? 'ja – werden beim Booten wiederhergestellt' : 'noch keine'],
-            ['Plugin-Version', window.UGREEN_LED_VERSION || '—'],
-            ['Status', online ? 'Verbunden' : `Keine Verbindung: ${error || ''}`]
+            [t('fact.model'), state.model],
+            [t('fact.bays'), state.bays || '—'],
+            [t('fact.control'), state.status.controller ? `${state.status.controller} (${t('fact.no_kernel_module')})` : '—'],
+            [t('fact.controller'), state.status.i2c_address
+                ? t('fact.controller_on', { bus: state.status.i2c_bus, address: state.status.i2c_address })
+                : t('fact.controller_off')],
+            [t('fact.leds'), state.order.length ? state.order.join(', ') : t('fact.none')],
+            [t('fact.kernel'), state.status.kernel || '—'],
+            [t('fact.monitor'), state.status.foreign_monitor ? t('fact.monitor_on') : t('fact.monitor_off')],
+            [t('fact.saved'), state.status.settings_saved ? t('fact.saved_yes') : t('fact.saved_no')],
+            [t('fact.version'), window.UGREEN_LED_VERSION || '—'],
+            [t('fact.status'), online ? t('fact.connected') : t('fact.disconnected', { error: error || '' })]
         ];
 
         q('#ulc-facts').innerHTML = facts
@@ -419,19 +432,19 @@
         }
 
         return [
-            { key: 'power', label: 'Power LED', icon: 'power', leds: ['power'], def: DEFAULTS.power },
-            { key: 'netdev', label: 'Netzwerk LED', icon: 'network', leds: ['netdev'], def: DEFAULTS.netdev },
-            { key: 'disks', label: 'Laufwerk Aktivität', sub: '(alle Schächte)', icon: 'drives', leds: disks(), def: DEFAULTS.disk },
-            { key: 'error', label: 'Laufwerk Fehlermeldung', sub: statusMode() ? '' : '(nur im Statusmodus)', icon: 'alert', leds: [], def: DEFAULTS.error, soon: !statusMode() }
+            { key: 'power', label: t('led.power'), icon: 'power', leds: ['power'], def: DEFAULTS.power },
+            { key: 'netdev', label: t('led.netdev'), icon: 'network', leds: ['netdev'], def: DEFAULTS.netdev },
+            { key: 'disks', label: t('colors.disks'), sub: t('colors.all_bays'), icon: 'drives', leds: disks(), def: DEFAULTS.disk },
+            { key: 'error', label: t('colors.error'), sub: statusMode() ? '' : t('colors.status_only'), icon: 'alert', leds: [], def: DEFAULTS.error, soon: !statusMode() }
         ].filter(row => row.key === 'error' || row.leds.every(led => state.order.includes(led)));
     }
 
     const colorInput = (value, disabled = false) => `
         <div class="ulc-color-input">
             <label class="ulc-swatch" style="--c:${value}">
-                <input type="color" value="${value}" ${disabled ? 'disabled' : ''} aria-label="Farbe wählen">
+                <input type="color" value="${value}" ${disabled ? 'disabled' : ''} aria-label="${t('colors.pick')}">
             </label>
-            <input type="text" value="${value.toUpperCase()}" maxlength="7" spellcheck="false" ${disabled ? 'disabled' : ''} aria-label="Hex-Farbe">
+            <input type="text" value="${value.toUpperCase()}" maxlength="7" spellcheck="false" ${disabled ? 'disabled' : ''} aria-label="${t('colors.hex')}">
         </div>`;
 
     function buildColors() {
@@ -443,7 +456,7 @@
                 ${icon(row.icon)}
                 <span>${escapeHtml(row.label)} ${row.sub ? `<small>${escapeHtml(row.sub)}</small>` : ''}</span>
                 ${colorInput(row.def, row.soon)}
-                <button type="button" class="ulc-icon-btn" data-reset title="Auf Standard zurücksetzen" ${row.soon ? 'disabled' : ''}>${icon('reset')}</button>
+                <button type="button" class="ulc-icon-btn" data-reset title="${t('colors.reset')}" ${row.soon ? 'disabled' : ''}>${icon('reset')}</button>
             </div>`).join('');
 
         renderColors();
@@ -487,10 +500,10 @@
 
     function buildEffects() {
         q('#ulc-effects').innerHTML = EFFECTS.map(effect => `
-            <button type="button" class="ulc-effect" data-effect="${effect.id}" ${effect.soon ? 'disabled' : ''}>
+            <button type="button" class="ulc-effect" data-effect="${effect.id}">
                 ${icon(effect.icon)}
-                <strong>${escapeHtml(effect.name)}</strong>
-                <small>${effect.soon ? '<em class="ulc-soon">bald</em><br>' : ''}${escapeHtml(effect.text)}</small>
+                <strong>${escapeHtml(effectName(effect.id))}</strong>
+                <small>${escapeHtml(t(`effect.${effect.id}_text`))}</small>
             </button>`).join('');
     }
 
@@ -510,17 +523,17 @@
                 <span class="ulc-led" data-led="${led}"></span>
                 <span>${escapeHtml(ledLabel(led))}<small>${led}</small></span>
                 ${colorInput('#ffffff')}
-                <input type="range" min="0" max="100" step="1" value="0" data-brightness aria-label="Helligkeit">
+                <input type="range" min="0" max="100" step="1" value="0" data-brightness aria-label="${t('brightness.label')}">
                 <div class="ulc-effect-cell">
-                    <select data-led-effect aria-label="Effekt">
-                        <option value="static">Statisch</option>
-                        <option value="breath">Atmen</option>
-                        <option value="blink">Pulsierend</option>
-                        <option value="off">Aus</option>
-                        <option value="rainbow" disabled>Regenbogen</option>
-                        <option value="temperature" disabled>Temperatur</option>
+                    <select data-led-effect aria-label="${t('effect.label')}">
+                        <option value="static">${t('effect.static')}</option>
+                        <option value="breath">${t('effect.breath')}</option>
+                        <option value="blink">${t('effect.blink')}</option>
+                        <option value="off">${t('effect.off_short')}</option>
+                        <option value="rainbow" disabled>${t('effect.rainbow')}</option>
+                        <option value="temperature" disabled>${t('effect.temperature')}</option>
                     </select>
-                    <span class="ulc-managed" data-managed hidden title="Im Statusmodus zeigt diese LED Aktivität und Fehler an">Statusmodus</span>
+                    <span class="ulc-managed" data-managed hidden title="${t('managed.title')}">${t('managed.label')}</span>
                 </div>
             </div>`).join('');
     }
@@ -582,10 +595,10 @@
         if (!schedule) return;
 
         q('#ulc-night-state').textContent = !schedule.enabled
-            ? 'Aus – die LEDs bleiben rund um die Uhr gleich.'
+            ? t('night.state_off')
             : night
-                ? `Gerade Nacht – bis ${schedule.end} Uhr.`
-                : `Gerade Tag – Nacht ab ${schedule.start} Uhr.`;
+                ? t('night.state_night', { time: schedule.end })
+                : t('night.state_day', { time: schedule.start });
     }
 
     function saveSchedule() {
@@ -593,7 +606,7 @@
         const end = q('#ulc-night-end').value;
 
         if (!start || !end) {
-            toast('Bitte Beginn und Ende angeben.', 'error');
+            toast(t('night.need_times'), 'error');
             return;
         }
 
@@ -609,7 +622,7 @@
 
             await loadStatus();
             await loadSchedule();
-        }, 'Nachtmodus gespeichert');
+        }, t('night.saved'));
     }
 
     function renderMode() {
@@ -646,35 +659,24 @@
         renderTables();
     }
 
-    const STATUS_TEXT = {
-        DISK_OK: 'OK',
-        DISK_NP: 'nicht zugewiesen',
-        DISK_INVALID: 'ungültig',
-        DISK_DSBL: 'deaktiviert',
-        DISK_DSBL_NEW: 'deaktiviert (neu)',
-        DISK_WRONG: 'falsche Platte',
-        DISK_NP_MISSING: 'fehlt',
-        DISK_NEW: 'neu'
-    };
-
     function renderBays() {
         const container = q('#ulc-bays');
 
         if (!state.bayInfo.length) {
-            container.innerHTML = '<p class="ulc-muted">Keine Zuordnung verfügbar.</p>';
+            container.innerHTML = `<p class="ulc-muted">${escapeHtml(t('bays.none'))}</p>`;
             return;
         }
 
         container.innerHTML = state.bayInfo.map(bay => {
             const kind = !bay.device ? 'empty' : bay.error ? 'error' : '';
-            const text = !bay.device ? 'leer'
-                : bay.status ? (STATUS_TEXT[bay.status] || bay.status)
-                    : 'außerhalb von Unraid';
+            const text = !bay.device ? t('bays.empty')
+                : bay.status ? t(`disk.${bay.status}`)
+                    : t('bays.outside');
 
             return `
                 <div class="ulc-bay-card ${kind}">
-                    <strong><span class="ulc-led" data-led="${escapeHtml(bay.led)}"></span>Schacht ${bay.bay}</strong>
-                    <small>${bay.device ? `/dev/${escapeHtml(bay.device)}${bay.slot ? ` · ${escapeHtml(bay.slot)}` : ''}` : 'Keine Platte erkannt'}</small>
+                    <strong><span class="ulc-led" data-led="${escapeHtml(bay.led)}"></span>${escapeHtml(t('led.bay', { n: bay.bay }))}</strong>
+                    <small>${bay.device ? `/dev/${escapeHtml(bay.device)}${bay.slot ? ` · ${escapeHtml(bay.slot)}` : ''}` : escapeHtml(t('bays.no_disk'))}</small>
                     ${bay.serial ? `<small>${escapeHtml(bay.serial)}</small>` : ''}
                     <span class="ulc-state ${kind}">${escapeHtml(text)}</span>
                 </div>`;
@@ -686,7 +688,7 @@
     async function setMode(mode) {
         await run(
             () => api({ action: 'mode', value: mode }, true),
-            mode === 'status' ? 'Statusmodus aktiv' : 'Manueller Modus aktiv'
+            mode === 'status' ? t('mode.status_on') : t('mode.manual_on')
         );
 
         await loadStatus();
@@ -696,7 +698,7 @@
         const value = normalizeHex(hex);
 
         if (!value) {
-            toast('Bitte eine Farbe im Format #RRGGBB angeben.', 'error');
+            toast(t('colors.invalid'), 'error');
             renderColors();
             return;
         }
@@ -705,7 +707,7 @@
 
         return run(
             () => api({ action: 'error_color', ...hexToRgb(value) }, true),
-            'Fehlerfarbe gespeichert'
+            t('colors.error_saved')
         );
     }
 
@@ -730,7 +732,7 @@
         const value = normalizeHex(hex);
 
         if (!value) {
-            toast('Bitte eine Farbe im Format #RRGGBB angeben.', 'error');
+            toast(t('colors.invalid'), 'error');
             renderColors();
             return;
         }
@@ -739,7 +741,7 @@
 
         return run(
             () => write(leds, 'color', hexToRgb(value)),
-            'Farbe übernommen'
+            t('colors.applied')
         );
     }
 
@@ -776,12 +778,12 @@
                 reverse: q('#ulc-direction').value === 'backward' ? '1' : '0',
                 idle: q('#ulc-idle').checked ? '1' : '0'
             }, true),
-            `Effekt: ${name}`
+            t('effect.applied', { name })
         );
     }
 
     function applyEffect(leds, effect) {
-        const name = EFFECTS.find(e => e.id === effect)?.name || effect;
+        const name = effectName(effect);
 
         if (EFFECTS.find(e => e.id === effect)?.software) {
             return applySoftwareEffect(leds, effect, name);
@@ -791,7 +793,7 @@
             ? { brightness: 0 }
             : { effect: effect === 'static' ? 'none' : effect });
 
-        return run(() => setEffect(leds, effect), `Effekt: ${name}`);
+        return run(() => setEffect(leds, effect), t('effect.applied', { name }));
     }
 
     function applyBrightness(leds, percent) {
@@ -801,7 +803,7 @@
 
         return run(
             () => write(leds, 'brightness', { value }),
-            `Helligkeit: ${percent} %`
+            t('brightness.applied', { percent })
         );
     }
 
@@ -811,7 +813,7 @@
         const leds = state.order.filter(led => before[led]?.brightness > 0);
 
         if (!leds.length) {
-            toast('Alle LEDs sind aus – erst einschalten, dann testen.', 'error');
+            toast(t('test.all_off'), 'error');
             return;
         }
 
@@ -832,13 +834,13 @@
                 const [on, off] = SPEEDS[state.speed][effect];
                 await write(groups[effect], effect, { on, off });
             }
-        }, 'Test abgeschlossen');
+        }, t('test.done'));
 
         button.disabled = false;
     }
 
     function resetDefaults() {
-        if (!window.confirm('Alle LEDs auf die Standardfarben, 80 % Helligkeit und „Statisch“ zurücksetzen?')) {
+        if (!window.confirm(t('reset.confirm'))) {
             return;
         }
 
@@ -855,7 +857,7 @@
 
             await write(state.order, 'stop');
             await write(state.order, 'brightness', { value: levelFromPercent(DEFAULTS.brightness) });
-        }, 'Standard wiederhergestellt');
+        }, t('reset.done'));
     }
 
     /*
@@ -916,7 +918,7 @@
                 applyBrightness(state.order, Number(q('#ulc-brightness').value) || DEFAULTS.brightness);
             } else {
                 preview(state.order, { brightness: 0 });
-                run(() => write(state.order, 'off'), 'Alle LEDs ausgeschaltet');
+                run(() => write(state.order, 'off'), t('all_off'));
             }
         });
 
@@ -934,6 +936,19 @@
         });
 
         q('#ulc-mode').addEventListener('change', event => setMode(event.target.value));
+
+        const language = q('#ulc-language');
+        language.value = window.UGREEN_LED_LANG_SETTING || 'auto';
+
+        // The page is built in one language, so a new one needs a reload.
+        language.addEventListener('change', async () => {
+            try {
+                await api({ action: 'lang', value: language.value }, true);
+                window.location.reload();
+            } catch (error) {
+                toast(error.message, 'error');
+            }
+        });
 
         /* Night mode */
 
@@ -996,7 +1011,7 @@
 
         speed.addEventListener('input', () => {
             setRangeFill(speed);
-            q('#ulc-speed-value').textContent = SPEEDS[speed.value].label;
+            q('#ulc-speed-value').textContent = t(SPEEDS[speed.value].label);
         });
 
         speed.addEventListener('change', () => {
@@ -1064,7 +1079,19 @@
      * ---------------------------------------------------------
      */
 
+    // Static texts of the page; data-i18n-html entries are our own trusted markup.
+    function translatePage() {
+        qa('[data-i18n]').forEach(element => {
+            element.textContent = t(element.dataset.i18n);
+        });
+        qa('[data-i18n-html]').forEach(element => {
+            element.innerHTML = t(element.dataset.i18nHtml);
+        });
+    }
+
     async function init() {
+        translatePage();
+
         try {
             const saved = localStorage.getItem('ulc-speed');
             if (saved !== null && SPEEDS[Number(saved)]) state.speed = Number(saved);
@@ -1074,7 +1101,7 @@
 
         const speed = q('#ulc-speed');
         speed.value = state.speed;
-        q('#ulc-speed-value').textContent = SPEEDS[state.speed].label;
+        q('#ulc-speed-value').textContent = t(SPEEDS[state.speed].label);
 
         qa('input[type="range"]').forEach(setRangeFill);
 
