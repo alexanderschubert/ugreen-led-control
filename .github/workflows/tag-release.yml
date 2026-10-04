@@ -1,0 +1,40 @@
+name: Tag release
+
+# The .plg downloads its files from the tag v<version>, so the tag has to
+# exist as soon as a new version reaches main.
+on:
+  push:
+    branches: [main]
+    paths: [plugin/ugreen-led-control.plg]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create tag for the plugin version
+        run: |
+          version="$(sed -n 's/^<!ENTITY version *"\([^"]*\)">.*/\1/p' plugin/ugreen-led-control.plg)"
+          if [ -z "$version" ]; then
+            echo "::error::No version entity found in plugin/ugreen-led-control.plg"
+            exit 1
+          fi
+
+          tag="v${version}"
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            echo "${tag} already exists."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${tag}" -m "UGREEN LED Control ${version}"
+          git push origin "${tag}"
+          echo "Created ${tag}."
