@@ -1110,6 +1110,41 @@
     color: var(--ulc-muted);
 }
 
+/* ---------- Dashboard tile ---------- */
+
+/* .ulc brings the colour variables; the page frame of the settings page isn't wanted here. */
+.ulc.ulc-dash {
+    display: block;
+    min-height: 0;
+    margin: 4px 0 6px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+}
+
+.ulc-dash .ulc-nas {
+    padding: 7px 7px 5px;
+}
+
+.ulc-dash .ulc-bay {
+    padding: 8px 0 7px;
+    gap: 6px;
+}
+
+.ulc-dash .ulc-bay-no {
+    font-size: 15px;
+}
+
+.ulc-dash .ulc-bay-info {
+    font-size: 11px;
+}
+
+.ulc-dash-alert {
+    color: #ef4444;
+    font-weight: 600;
+}
+
 /* ---------- Toast ---------- */
 
 .ulc-toast {

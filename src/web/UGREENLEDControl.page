@@ -8,16 +8,8 @@ $ulc_var = is_file('/var/local/emhttp/var.ini')
     ? parse_ini_file('/var/local/emhttp/var.ini')
     : [];
 
-// Interface language: the saved choice, or Unraid's own language for "auto".
-$ulc_settings = is_file('/boot/config/plugins/ugreen-led-control/leds.cfg')
-    ? (parse_ini_file('/boot/config/plugins/ugreen-led-control/leds.cfg') ?: [])
-    : [];
-$ulc_dynamix = is_file('/boot/config/plugins/dynamix/dynamix.cfg')
-    ? (parse_ini_file('/boot/config/plugins/dynamix/dynamix.cfg', true) ?: [])
-    : [];
-$ulc_unraid_lang = str_starts_with((string)($ulc_dynamix['display']['locale'] ?? ''), 'de') ? 'de' : 'en';
-$ulc_lang_setting = in_array($ulc_settings['ui_lang'] ?? '', ['de', 'en'], true) ? $ulc_settings['ui_lang'] : 'auto';
-$ulc_lang = $ulc_lang_setting === 'auto' ? $ulc_unraid_lang : $ulc_lang_setting;
+require_once '/usr/local/emhttp/plugins/ugreen-led-control/include/lang.php';
+[$ulc_lang, $ulc_lang_setting] = ulc_language();
 
 $ulc_version = preg_match(
     '/ENTITY\s+version\s+"([^"]+)"/',

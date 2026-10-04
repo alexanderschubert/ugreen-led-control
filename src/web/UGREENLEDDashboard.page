@@ -1,0 +1,29 @@
+Menu="Dashboard:0"
+Icon="lightbulb-o"
+Cond="version_compare(parse_ini_file('/etc/unraid-version')['version'], '6.12.0', '>=')"
+---
+<?php
+// Dashboard tile: Unraid's dashboard (6.12+) shows every $mytiles entry as a
+// movable tile; each tile is a <tbody>, its title is the name in the content manager.
+require_once '/usr/local/emhttp/plugins/ugreen-led-control/include/lang.php';
+[$ulc_lang] = ulc_language();
+
+$mytiles['ugreen-led-control']['column2'] = <<<EOT
+<tbody id="ulc-dash-tile" title="UGREEN LED Control">
+<tr><td>
+<i class="fa fa-lightbulb-o f32"></i>
+<div class="section">UGREEN LED Control<br><span id="ulc-dash-state"></span></div>
+<a href="/Settings/UGREENLEDControl" id="ulc-dash-settings"><i class="fa fa-fw fa-cog control"></i></a>
+</td></tr>
+<tr><td>
+<div class="ulc ulc-dash" id="ulc-dash"><div class="ulc-nas" data-nas></div></div>
+</td></tr>
+</tbody>
+EOT;
+?>
+<link rel="stylesheet" href="<?autov('/plugins/ugreen-led-control/css/app.css')?>">
+<script>
+window.UGREEN_LED_LANG = <?= json_encode($ulc_lang) ?>;
+</script>
+<script src="<?autov('/plugins/ugreen-led-control/js/i18n.js')?>"></script>
+<script src="<?autov('/plugins/ugreen-led-control/js/dash.js')?>"></script>
