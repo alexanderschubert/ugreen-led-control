@@ -555,6 +555,7 @@
 
 .ulc-bay-card {
     display: grid;
+    align-content: start;
     gap: 4px;
     padding: 12px 14px;
     border: 1px solid var(--ulc-border);
@@ -595,6 +596,15 @@
 .ulc-state.error {
     background: rgba(239, 68, 68, .15);
     color: #fca5a5;
+}
+
+/* Longer text than the other states; a pill would turn into a blob. */
+.ulc-state.warning {
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: rgba(255, 140, 0, .15);
+    color: #fdba74;
+    line-height: 1.35;
 }
 
 .ulc-state.empty {

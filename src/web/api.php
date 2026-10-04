@@ -287,11 +287,13 @@ if ($method === 'POST') {
 
     if ($action === 'status_display') {
         $rgb = [];
+        $smartRgb = [];
 
         foreach (['r', 'g', 'b'] as $channel) {
             $value = filter_var($input[$channel] ?? null, FILTER_VALIDATE_INT);
+            $smart = filter_var($input["smart_{$channel}"] ?? null, FILTER_VALIDATE_INT);
 
-            if ($value === false || $value < 0 || $value > 255) {
+            if ($value === false || $value < 0 || $value > 255 || $smart === false || $smart < 0 || $smart > 255) {
                 respond([
                     'ok' => false,
                     'error' => 'RGB values must be 0-255'
@@ -299,6 +301,16 @@ if ($method === 'POST') {
             }
 
             $rgb[] = $value;
+            $smartRgb[] = $smart;
+        }
+
+        $colorMode = (string)($input['disk_color_mode'] ?? '');
+
+        if (!in_array($colorMode, ['own', 'temperature'], true)) {
+            respond([
+                'ok' => false,
+                'error' => 'Invalid status display values'
+            ], 400);
         }
 
         $standbyMode = (string)($input['standby_mode'] ?? '');
@@ -316,10 +328,36 @@ if ($method === 'POST') {
             'sync_enabled' => ($input['sync_enabled'] ?? '') === '1' ? '1' : '0',
             'sync_color' => implode(' ', $rgb),
             'standby_mode' => $standbyMode,
-            'standby_level' => (string)$standbyLevel
+            'standby_level' => (string)$standbyLevel,
+            'disk_color_mode' => $colorMode,
+            'smart_enabled' => ($input['smart_enabled'] ?? '') === '1' ? '1' : '0',
+            'smart_color' => implode(' ', $smartRgb)
         ]);
 
         if (!$saved) {
+            respond([
+                'ok' => false,
+                'error' => CONFIG_FILE . ' is not writable'
+            ], 500);
+        }
+
+        respond(['ok' => true]);
+    }
+
+    // Accept a disk's current SMART values; it warns again only when one rises.
+    if ($action === 'smart_ack') {
+        $led = (string)($input['led'] ?? '');
+        $bays = json_decode(run_backend(['bays'])['output'], true) ?: [];
+        $bay = current(array_filter($bays, fn ($b) => ($b['led'] ?? '') === $led));
+
+        if (!$bay || ($bay['smart_key'] ?? '') === '' || ($bay['smart_now'] ?? '') === '') {
+            respond([
+                'ok' => false,
+                'error' => 'No SMART values for this bay'
+            ], 400);
+        }
+
+        if (!save_settings([$bay['smart_key'] => $bay['smart_now']])) {
             respond([
                 'ok' => false,
                 'error' => CONFIG_FILE . ' is not writable'
