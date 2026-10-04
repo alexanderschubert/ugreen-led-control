@@ -1127,7 +1127,9 @@
     padding: 7px 7px 5px;
 }
 
+/* Shorter bays than on the settings page, so the tile stays compact. */
 .ulc-dash .ulc-bay {
+    aspect-ratio: 1 / 1.45;
     padding: 8px 0 7px;
     gap: 6px;
 }
