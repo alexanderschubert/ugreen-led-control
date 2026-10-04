@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.2.1">
+<!ENTITY version   "0.3.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -23,6 +23,13 @@
 >
 
 <CHANGES>
+
+### 0.3.0
+- New interface: overview with general settings, LED colours, effects, live preview of the case and effect settings
+- Per-LED page and per-bay page with colour, brightness and effect
+- Test button and reset to defaults
+- Warning while the ugreenleds-driver LED monitor is running, because it overwrites disk and network LEDs
+- Styles only apply inside the plugin page
 
 ### 0.2.1
 - Fix: the install script copied nothing, because plugin entities are not expanded inside CDATA

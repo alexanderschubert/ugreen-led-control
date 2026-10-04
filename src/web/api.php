@@ -81,6 +81,22 @@ if ($method === 'GET') {
                 'leds' => is_array($data) ? $data : []
             ]);
 
+        case 'all':
+            $result = run_backend(['all']);
+            $data = json_decode($result['output'], true);
+
+            if ($result['code'] !== 0 || !is_array($data)) {
+                respond([
+                    'ok' => false,
+                    'error' => $result['output']
+                ], 500);
+            }
+
+            respond([
+                'ok' => true,
+                'leds' => $data
+            ]);
+
         case 'led':
             $led = $_GET['led'] ?? '';
 
@@ -117,14 +133,20 @@ if ($method === 'POST') {
     $input = $_POST;
 
     $action = $input['action'] ?? '';
-    $led = $input['led'] ?? '';
 
-    if (!preg_match('/^(power|netdev|disk[1-8])$/', $led)) {
-        respond([
-            'ok' => false,
-            'error' => 'Invalid LED'
-        ], 400);
+    // One LED or a comma-separated list, e.g. "disk1,disk2,disk3".
+    $leds = explode(',', (string)($input['led'] ?? ''));
+
+    foreach ($leds as $led) {
+        if (!preg_match('/^(power|netdev|disk[1-8])$/', $led)) {
+            respond([
+                'ok' => false,
+                'error' => 'Invalid LED'
+            ], 400);
+        }
     }
+
+    $led = '%LED%';
 
     switch ($action) {
 
@@ -269,18 +291,22 @@ if ($method === 'POST') {
             ], 400);
     }
 
-    $result = run_backend($args);
+    foreach ($leds as $target) {
+        $result = run_backend(
+            array_map(fn ($arg) => $arg === '%LED%' ? $target : $arg, $args)
+        );
 
-    if ($result['code'] !== 0) {
-        respond([
-            'ok' => false,
-            'error' => $result['output']
-        ], 500);
+        if ($result['code'] !== 0) {
+            respond([
+                'ok' => false,
+                'error' => "{$target}: {$result['output']}"
+            ], 500);
+        }
     }
 
     respond([
         'ok' => true,
-        'command' => $args
+        'leds' => $leds
     ]);
 }
 
