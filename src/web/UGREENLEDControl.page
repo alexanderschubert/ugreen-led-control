@@ -241,6 +241,7 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
     <article class="ulc-card">
         <h2 data-i18n="bays.title">Zuordnung &amp; Status</h2>
         <p class="ulc-muted" data-i18n="bays.intro">Welche Platte in welchem Schacht steckt und wie Unraid sie meldet. Im Statusmodus zeigen die LEDs genau das an.</p>
+        <p class="ulc-hint" id="ulc-mapping-hint" data-i18n="mapping.hint" hidden>Für dieses Modell ist die Zuordnung der Schächte nicht geprüft. Kontrolliere sie mit „Identifizieren“: Blinkt der richtige Schacht?</p>
         <p class="ulc-hint" id="ulc-sync-state" hidden></p>
         <div class="ulc-bays" id="ulc-bays"></div>
     </article>

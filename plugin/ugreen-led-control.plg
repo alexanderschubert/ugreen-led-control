@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.13.0">
+<!ENTITY version   "0.14.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,10 @@
 >
 
 <CHANGES>
+
+### 0.14.0
+- More UGREEN models: DXP8800 Plus, DX4600 Pro, DXP4800 (Plus/Pro), DX4700 and DXP2800 get their bay-to-SATA-port tables (after miskcoo/ugreen_leds_controller); other models fall back to ata1…ataN
+- The System page says whether the bay assignment is verified, reported or guessed; the Laufwerke page asks to check it with "Identifizieren" when it isn't verified
 
 ### 0.13.0
 - Drive LEDs can show each disk's temperature (blue → green → yellow at Unraid's "hot" → red at "critical"; disk-specific limits and SSD limits respected)
