@@ -1,7 +1,8 @@
 name: Tag release
 
-# The .plg downloads its files from the tag v<version>, so the tag has to
-# exist as soon as a new version reaches main.
+# The .plg downloads its files from the tag v<version> and the ugreen-led-i2c
+# binary from the release of that tag, so both have to exist as soon as a new
+# version reaches main.
 on:
   push:
     branches: [main]
@@ -12,29 +13,58 @@ permissions:
   contents: write
 
 jobs:
-  tag:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Create tag for the plugin version
+      - name: Read the plugin version
+        id: version
         run: |
           version="$(sed -n 's/^<!ENTITY version *"\([^"]*\)">.*/\1/p' plugin/ugreen-led-control.plg)"
           if [ -z "$version" ]; then
             echo "::error::No version entity found in plugin/ugreen-led-control.plg"
             exit 1
           fi
+          echo "tag=v${version}" >> "$GITHUB_OUTPUT"
 
-          tag="v${version}"
-          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
-            echo "${tag} already exists."
+      - name: Create the tag
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
+            echo "${TAG} already exists."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "${tag}" -m "UGREEN LED Control ${version}"
-          git push origin "${tag}"
-          echo "Created ${tag}."
+          git tag -a "${TAG}" -m "UGREEN LED Control ${TAG#v}"
+          git push origin "${TAG}"
+          echo "Created ${TAG}."
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: i2c/go.mod
+
+      - name: Build ugreen-led-i2c from the tag
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git checkout "${TAG}"
+          cd i2c
+          go test ./...
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o ugreen-led-i2c .
+
+      - name: Create the release with the binary
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" i2c/ugreen-led-i2c --clobber
+          else
+            gh release create "${TAG}" i2c/ugreen-led-i2c --title "UGREEN LED Control ${TAG#v}" --notes "Plugin version ${TAG#v}. Install: https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/plugin/ugreen-led-control.plg"
+          fi

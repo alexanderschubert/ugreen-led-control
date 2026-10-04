@@ -1,12 +1,13 @@
 #!/bin/bash
 #
 # UGREEN LED Control
-# Backend for UGREEN NAS LED Class driver
+# Backend: talks to the LED controller through ugreen-led-i2c (no kernel module).
 #
 
 set -u
 
-LED_BASE="${UGREEN_LED_BASE:-/sys/class/leds}"
+HERE="$(dirname "$(readlink -f "$0")")"
+LED_TOOL="${UGREEN_LED_I2C:-$HERE/ugreen-led-i2c}"
 CONFIG="${UGREEN_LED_CONFIG:-/boot/config/plugins/ugreen-led-control/leds.cfg}"
 DISKS_INI="${UGREEN_DISKS_INI:-/var/local/emhttp/disks.ini}"
 SYS_BLOCK="${UGREEN_SYS_BLOCK:-/sys/block}"
@@ -14,9 +15,13 @@ SYS_NET="${UGREEN_SYS_NET:-/sys/class/net}"
 PIDFILE="/var/run/ugreen-led-control.pid"
 
 DEFAULT_DISK_COLOR="255 160 0"
+DEFAULT_NETDEV_COLOR="0 200 83"
 DEFAULT_ERROR_COLOR="255 59 48"
 
-# The driver always creates disk1..disk8; only the bays the model has are real.
+# Hardware blink while a disk or the network is busy.
+ACTIVITY_ON_MS=100
+ACTIVITY_OFF_MS=100
+
 product_name() {
     [ -n "${UGREEN_PRODUCT:-}" ] && { echo "$UGREEN_PRODUCT"; return; }
     cat /sys/class/dmi/id/product_name 2>/dev/null || echo "UGREEN NAS"
@@ -29,6 +34,7 @@ bay_count() {
     echo "${digit:-8}"
 }
 
+# The controller always knows disk1..disk8; only the bays the model has are real.
 supported_leds() {
     local i
     printf 'power netdev'
@@ -56,7 +62,6 @@ Usage:
   ugreen-led-ctl blink <led> <on_ms> <off_ms>
   ugreen-led-ctl breath <led> <on_ms> <off_ms>
   ugreen-led-ctl stop <led>
-  ugreen-led-ctl trigger <led> <trigger>
   ugreen-led-ctl help
 
 Supported LEDs:
@@ -67,119 +72,118 @@ USAGE
 }
 
 valid_led() {
-    local led="$1"
-    [ -d "$LED_BASE/$led" ]
+    case " $(supported_leds) " in
+        *" $1 "*) return 0 ;;
+    esac
+    return 1
 }
 
-read_attr() {
-    local led="$1"
-    local attr="$2"
-    local file="$LED_BASE/$led/$attr"
-
-    if [ -r "$file" ]; then
-        head -n 1 "$file" 2>/dev/null
-    else
-        echo ""
-    fi
-}
-
-# blink_type and trigger list every option and mark the active one: "[none] blink breath"
-read_selected() {
-    read_attr "$1" "$2" | sed -n 's/.*\[\([^]]*\)\].*/\1/p'
-}
-
-write_attr() {
-    local led="$1"
-    local attr="$2"
-    local value="$3"
-    local file="$LED_BASE/$led/$attr"
-
-    if [ ! -e "$file" ]; then
-        echo "ERROR: Attribute '$attr' is not available for '$led'." >&2
-        return 1
-    fi
-
-    if [ ! -w "$file" ]; then
-        echo "ERROR: Attribute '$attr' is not writable for '$led'." >&2
-        return 1
-    fi
-
-    printf '%s\n' "$value" > "$file"
-}
-
-list_leds() {
-    echo "["
-
-    local first=1
-    local led
-
-    for led in $(supported_leds); do
-        if valid_led "$led"; then
-            if [ "$first" -eq 0 ]; then
-                echo ","
-            fi
-
-            printf '  "%s"' "$led"
-            first=0
-        fi
-    done
-
-    echo
-    echo "]"
-}
-
-get_status() {
-    local led="$1"
-
-    valid_led "$led" || {
-        echo "ERROR: LED '$led' not found." >&2
+require_led() {
+    valid_led "$1" || {
+        echo "ERROR: LED '$1' not found." >&2
         return 1
     }
+}
 
-    local brightness
-    local max_brightness
-    local color
-    local effect
-    local trigger
+is_byte() {
+    case "$1" in
+        ''|*[!0-9]*) return 1 ;;
+    esac
+    [ "$1" -le 255 ]
+}
 
-    brightness="$(read_attr "$led" brightness)"
-    max_brightness="$(read_attr "$led" max_brightness)"
-    color="$(read_attr "$led" color)"
-    effect="$(read_selected "$led" blink_type)"
-    trigger="$(read_selected "$led" trigger)"
+tool() {
+    "$LED_TOOL" "$@"
+}
+
+# "<name> <mode> <brightness> <R> <G> <B> <on_ms> <off_ms>"
+led_line() {
+    tool --plain get "$1"
+}
+
+led_mode() {
+    led_line "$1" | cut -d' ' -f2
+}
+
+# ============================================================
+# Reading
+# ============================================================
+
+# What the web UI expects: brightness 0 while off, effect none|blink|breath.
+status_json() {
+    local name="$1"
+    local mode="$2"
+    local brightness="$3"
+    local color="$4 $5 $6"
+    local effect="none"
+
+    case "$mode" in
+        off) brightness=0 ;;
+        blink|breath) effect="$mode" ;;
+    esac
 
     printf '{\n'
-    printf '  "name": "%s",\n' "$led"
+    printf '  "name": "%s",\n' "$name"
     printf '  "brightness": "%s",\n' "$brightness"
-    printf '  "max_brightness": "%s",\n' "$max_brightness"
+    printf '  "max_brightness": "255",\n'
     printf '  "color": "%s",\n' "$color"
-    printf '  "effect": "%s",\n' "${effect:-none}"
-    printf '  "trigger": "%s"\n' "${trigger:-none}"
+    printf '  "effect": "%s",\n' "$effect"
+    printf '  "on_ms": "%s",\n' "$7"
+    printf '  "off_ms": "%s"\n' "$8"
     printf '}\n'
 }
 
-# ich777's ugreenleds-driver monitor rewrites the disk and netdev LEDs.
-foreign_monitor_running() {
-    pgrep -f '^/bin/bash /usr/bin/ugreen-leds' >/dev/null 2>&1
+get_status() {
+    local line
+
+    require_led "$1" || return 1
+    line="$(led_line "$1")" || return 1
+
+    # shellcheck disable=SC2086 # the line is eight space-separated fields
+    status_json $line
 }
 
 all_leds() {
     local first=1
-    local led
+    local name mode brightness r g b on off
 
     printf '{\n'
-    for led in $(supported_leds); do
-        valid_led "$led" || continue
+    while read -r name mode brightness r g b on off; do
+        valid_led "$name" || continue
         [ "$first" -eq 1 ] || printf ',\n'
-        printf '"%s": ' "$led"
-        get_status "$led"
+        printf '"%s": ' "$name"
+        status_json "$name" "$mode" "$brightness" "$r" "$g" "$b" "$on" "$off"
         first=0
-    done
+    done < <(tool --plain get all 2>/dev/null)
     printf '}\n'
 }
 
+list_leds() {
+    local first=1
+    local led
+
+    printf '['
+    # Only when the controller answers; an empty list tells the UI nothing is there.
+    if tool --plain get power >/dev/null 2>&1; then
+        for led in $(supported_leds); do
+            [ "$first" -eq 1 ] || printf ', '
+            printf '"%s"' "$led"
+            first=0
+        done
+    fi
+    printf ']\n'
+}
+
+# ich777's ugreenleds-driver monitor writes the same LEDs.
+foreign_monitor_running() {
+    pgrep -f '^/bin/bash /usr/bin/ugreen-leds' >/dev/null 2>&1
+}
+
 status() {
-    local device
+    local probe
+    local bus=""
+
+    probe="$(tool probe 2>/dev/null)" && bus="$(printf '%s' "$probe" | sed -n 's/.*"bus": "\/dev\/i2c-\([0-9]*\)".*/\1/p')"
 
     printf '{\n'
     printf '  "ok": true,\n'
@@ -199,140 +203,92 @@ status() {
     fi
     printf '  "disk_error_color": "%s",\n' "$(config_value disk_error_color | grep . || echo "$DEFAULT_ERROR_COLOR")"
     printf '  "network_device": "%s",\n' "$(network_device)"
-    printf '  "controller": "led_ugreen",\n'
-    # The real device, e.g. /sys/bus/i2c/devices/0-003a; empty while it isn't declared.
-    device="$(ls -d /sys/bus/i2c/devices/*-003a 2>/dev/null | head -n 1)"
-    if [ -n "$device" ]; then
-        device="${device##*/}"
-        printf '  "i2c_bus": %s,\n' "${device%%-*}"
+    printf '  "controller": "ugreen-led-i2c (ohne Kernel-Modul)",\n'
+    if [ -n "$bus" ]; then
+        printf '  "i2c_bus": %s,\n' "$bus"
         printf '  "i2c_address": "0x3a",\n'
     else
         printf '  "i2c_bus": null,\n'
         printf '  "i2c_address": null,\n'
     fi
     printf '  "leds": '
-
     list_leds
-
     printf '}\n'
 }
 
-set_on() {
+# ============================================================
+# Writing
+# ============================================================
+
+set_color() {
     local led="$1"
+    local value
 
-    valid_led "$led" || {
-        echo "ERROR: LED '$led' not found." >&2
-        return 1
-    }
+    require_led "$led" || return 1
+    for value in "$2" "$3" "$4"; do
+        is_byte "$value" || {
+            echo "ERROR: RGB values must be between 0 and 255." >&2
+            return 1
+        }
+    done
 
-    write_attr "$led" trigger "none" 2>/dev/null || true
-    write_attr "$led" brightness 255
+    tool set "$led" color "$2" "$3" "$4"
 }
 
-set_off() {
-    local led="$1"
-
-    valid_led "$led" || {
-        echo "ERROR: LED '$led' not found." >&2
-        return 1
-    }
-
-    write_attr "$led" trigger "none" 2>/dev/null || true
-    write_attr "$led" brightness 0
-}
-
+# Brightness 0 switches the LED off; any other value also switches an off LED on.
 set_brightness() {
     local led="$1"
     local value="$2"
 
-    valid_led "$led" || {
-        echo "ERROR: LED '$led' not found." >&2
-        return 1
-    }
-
-    case "$value" in
-        ''|*[!0-9]*)
-            echo "ERROR: Brightness must be between 0 and 255." >&2
-            return 1
-            ;;
-    esac
-
-    if [ "$value" -gt 255 ]; then
+    require_led "$led" || return 1
+    is_byte "$value" || {
         echo "ERROR: Brightness must be between 0 and 255." >&2
         return 1
+    }
+
+    if [ "$value" -eq 0 ]; then
+        tool set "$led" off
+        return
     fi
 
-    write_attr "$led" trigger "none" 2>/dev/null || true
-    write_attr "$led" brightness "$value"
+    tool set "$led" brightness "$value" || return 1
+    [ "$(led_mode "$led")" = "off" ] && tool set "$led" on
+    return 0
 }
 
-set_color() {
-    local led="$1"
-    local r="$2"
-    local g="$3"
-    local b="$4"
-
-    valid_led "$led" || {
-        echo "ERROR: LED '$led' not found." >&2
-        return 1
-    }
-
-    for value in "$r" "$g" "$b"; do
-        case "$value" in
-            ''|*[!0-9]*)
-                echo "ERROR: RGB values must be between 0 and 255." >&2
-                return 1
-                ;;
-        esac
-
-        if [ "$value" -gt 255 ]; then
-            echo "ERROR: RGB values must be between 0 and 255." >&2
-            return 1
-        fi
-    done
-
-    write_attr "$led" color "$r $g $b"
+set_on() {
+    require_led "$1" || return 1
+    tool set "$1" brightness 255 && tool set "$1" on
 }
 
-set_blink() {
-    local led="$1"
-    local on_ms="$2"
-    local off_ms="$3"
-
-    valid_led "$led" || {
-        echo "ERROR: LED '$led' not found." >&2
-        return 1
-    }
-
-    write_attr "$led" trigger "none" 2>/dev/null || true
-    write_attr "$led" blink_type "blink $on_ms $off_ms"
+set_off() {
+    require_led "$1" || return 1
+    tool set "$1" off
 }
 
-set_breath() {
-    local led="$1"
-    local on_ms="$2"
-    local off_ms="$3"
+set_effect() {
+    local effect="$1"
+    local led="$2"
 
-    valid_led "$led" || {
-        echo "ERROR: LED '$led' not found." >&2
-        return 1
-    }
-
-    write_attr "$led" trigger "none" 2>/dev/null || true
-    write_attr "$led" blink_type "breath $on_ms $off_ms"
+    require_led "$led" || return 1
+    tool set "$led" "$effect" "$3" "$4"
 }
 
+# Back to a steady light; an LED that is off stays off.
 stop_effect() {
-    local led="$1"
+    local mode
 
-    valid_led "$led" || {
-        echo "ERROR: LED '$led' not found." >&2
-        return 1
-    }
+    require_led "$1" || return 1
+    mode="$(led_mode "$1")" || return 1
 
-    write_attr "$led" blink_type "none" 2>/dev/null || true
-    write_attr "$led" trigger "none" 2>/dev/null || true
+    case "$mode" in
+        blink|breath) tool set "$1" on ;;
+    esac
 }
+
+# ============================================================
+# Saved settings
+# ============================================================
 
 # Read one value from the settings file without sourcing it: key="value"
 config_value() {
@@ -353,8 +309,6 @@ apply_config() {
     fi
 
     for led in $(supported_leds); do
-        valid_led "$led" || continue
-
         color="$(config_value "${led}_color")"
         brightness="$(config_value "${led}_brightness")"
         effect="$(config_value "${led}_effect")"
@@ -363,13 +317,14 @@ apply_config() {
 
         # shellcheck disable=SC2086 # "R G B" is meant to split into three arguments
         [ -n "$color" ] && set_color "$led" $color
-
-        # Brightness first: it resets the trigger, and an effect needs a lit LED.
         [ -n "$brightness" ] && set_brightness "$led" "$brightness"
 
+        # An effect would light an LED that is meant to be off.
+        [ "${brightness:-1}" = "0" ] && continue
+
         case "$effect" in
-            blink) set_blink "$led" "${on_ms:-450}" "${off_ms:-450}" ;;
-            breath) set_breath "$led" "${on_ms:-1200}" "${off_ms:-900}" ;;
+            blink) set_effect blink "$led" "${on_ms:-450}" "${off_ms:-450}" ;;
+            breath) set_effect breath "$led" "${on_ms:-1200}" "${off_ms:-900}" ;;
             none) stop_effect "$led" ;;
         esac
     done
@@ -377,16 +332,12 @@ apply_config() {
     echo "Saved settings applied."
 }
 
-set_trigger() {
-    local led="$1"
-    local trigger="$2"
+saved_color() {
+    config_value "${1}_color" | grep . || echo "$2"
+}
 
-    valid_led "$led" || {
-        echo "ERROR: LED '$led' not found." >&2
-        return 1
-    }
-
-    write_attr "$led" trigger "$trigger"
+saved_brightness() {
+    config_value "${1}_brightness" | grep . || echo 255
 }
 
 # ============================================================
@@ -512,46 +463,20 @@ log() {
     logger -t ugreen-led-control "$1" 2>/dev/null || echo "$1"
 }
 
-# Saved per-LED colour/brightness, with the status-mode defaults.
-saved_color() {
-    config_value "${1}_color" | grep . || echo "$2"
-}
-
-saved_brightness() {
-    config_value "${1}_brightness" | grep . || echo 255
-}
-
-# Lit LED that the oneshot trigger blinks off briefly on every "shot".
-setup_activity_led() {
+# A steady LED in the given colour and brightness ("R G B|brightness"), or off.
+show_steady() {
     local led="$1"
-    local color="$2"
-    local brightness="$3"
+    local wanted="$2"
+
+    if [ "$wanted" = "off" ]; then
+        tool set "$led" off >/dev/null 2>&1
+        return
+    fi
 
     # shellcheck disable=SC2086
-    set_color "$led" $color >/dev/null
-    write_attr "$led" blink_type "none" 2>/dev/null
-    write_attr "$led" trigger "oneshot" 2>/dev/null
-    write_attr "$led" invert 1 2>/dev/null
-    write_attr "$led" delay_on 60 2>/dev/null
-    write_attr "$led" delay_off 60 2>/dev/null
-    # After the trigger: invert switches to full brightness, this sets the real one.
-    write_attr "$led" brightness "$brightness" 2>/dev/null
-}
-
-setup_network_led() {
-    local dev="$1"
-    local color="$2"
-    local brightness="$3"
-
-    # shellcheck disable=SC2086
-    set_color netdev $color >/dev/null
-    write_attr netdev blink_type "none" 2>/dev/null
-    write_attr netdev trigger "netdev" 2>/dev/null
-    write_attr netdev device_name "$dev" 2>/dev/null
-    write_attr netdev link 1 2>/dev/null
-    write_attr netdev rx 1 2>/dev/null
-    write_attr netdev tx 1 2>/dev/null
-    write_attr netdev brightness "$brightness" 2>/dev/null
+    tool set "$led" color ${wanted%|*} >/dev/null 2>&1
+    tool set "$led" brightness "${wanted#*|}" >/dev/null 2>&1
+    tool set "$led" on >/dev/null 2>&1
 }
 
 daemon_run() {
@@ -563,13 +488,18 @@ daemon_run() {
     local writes
     local rest
     local wanted
-    local net_dev
-    local net_wanted=""
-    local net_ok=1
     local error_color
+    local net_dev
+    local net_ok=1
+    local net_wanted=""
+    local net_counter=""
+    local net_blinking=0
+    local rx
+    local tx
     local -a devices=()
     local -a applied=()
     local -a counters=()
+    local -a blinking=()
 
     bays="$(bay_count)"
     net_dev="$(network_device)"
@@ -578,7 +508,6 @@ daemon_run() {
     log "status daemon started (bays: $bays, network: ${net_dev:-none})"
 
     while :; do
-        # Every 5 s: which disk is where, Unraid's disk status, saved colours.
         if [ $((tick % 25)) -eq 0 ]; then
             # Two monitors would overwrite each other forever; leave the LEDs to the other one.
             if foreign_monitor_running; then
@@ -589,14 +518,19 @@ daemon_run() {
 
             error_color="$(config_value disk_error_color | grep . || echo "$DEFAULT_ERROR_COLOR")"
 
-            for bay in $(seq 1 "$bays"); do
-                valid_led "disk$bay" || continue
+            # Every 30 s everything is written again, which also undoes manual writes (Test, effects).
+            if [ $((tick % 150)) -eq 0 ]; then
+                applied=()
+                net_wanted=""
+            fi
 
+            # Every 5 s: which disk is where, Unraid's disk status, saved colours.
+            for bay in $(seq 1 "$bays"); do
                 dev="$(bay_device "$bay")"
                 devices[bay]="$dev"
 
                 if [ -z "$dev" ]; then
-                    wanted="empty"
+                    wanted="off"
                 else
                     # shellcheck disable=SC2046
                     set -- $(unraid_disk "$dev")
@@ -607,26 +541,30 @@ daemon_run() {
                     fi
                 fi
 
-                # A manual write (test, effect) replaces the trigger; set it up again.
-                if [ "$wanted" != "empty" ] && [ "$(read_selected "disk$bay" trigger)" != "oneshot" ]; then
-                    applied[bay]=""
-                fi
-
                 if [ "${applied[bay]:-}" != "$wanted" ]; then
-                    if [ "$wanted" = "empty" ]; then
-                        write_attr "disk$bay" trigger "none" 2>/dev/null
-                        write_attr "disk$bay" brightness 0 2>/dev/null
-                    else
-                        setup_activity_led "disk$bay" "${wanted%|*}" "${wanted#*|}"
-                    fi
+                    show_steady "disk$bay" "$wanted"
                     applied[bay]="$wanted"
-                    counters[bay]=""
+                    blinking[bay]=0
                 fi
             done
+
+            if [ -n "$net_dev" ]; then
+                if [ "$net_ok" -eq 1 ]; then
+                    wanted="$(saved_color netdev "$DEFAULT_NETDEV_COLOR")|$(saved_brightness netdev)"
+                else
+                    wanted="$error_color|$(saved_brightness netdev)"
+                fi
+
+                if [ "$net_wanted" != "$wanted" ]; then
+                    show_steady netdev "$wanted"
+                    net_wanted="$wanted"
+                    net_blinking=0
+                fi
+            fi
         fi
 
-        # Network: link and gateway every 30 s, the LED setup checked every 5 s.
-        if [ $((tick % 150)) -eq 0 ] && [ -n "$net_dev" ]; then
+        # Every 30 s: link and gateway.
+        if [ $((tick % 150)) -eq 1 ] && [ -n "$net_dev" ]; then
             if network_ok "$net_dev"; then
                 net_ok=1
             else
@@ -634,33 +572,41 @@ daemon_run() {
             fi
         fi
 
-        if [ $((tick % 25)) -eq 0 ] && [ -n "$net_dev" ] && valid_led netdev; then
-            if [ "$net_ok" -eq 1 ]; then
-                wanted="$(saved_color netdev "0 200 83")|$(saved_brightness netdev)"
-            else
-                wanted="$error_color|$(saved_brightness netdev)"
-            fi
-
-            [ "$(read_selected netdev trigger)" = "netdev" ] || net_wanted=""
-
-            if [ "$net_wanted" != "$wanted" ]; then
-                setup_network_led "$net_dev" "${wanted%|*}" "${wanted#*|}"
-                net_wanted="$wanted"
-            fi
-        fi
-
-        # Every 0.2 s: blink a bay whose read/write counters moved.
+        # Every 0.2 s: blink while the read/write counters of a disk move.
         for bay in $(seq 1 "$bays"); do
             dev="${devices[bay]:-}"
             [ -n "$dev" ] || continue
 
             read -r reads _ _ _ writes rest < "$SYS_BLOCK/$dev/stat" 2>/dev/null || continue
 
-            if [ "${counters[bay]:-}" != "$reads $writes" ]; then
-                [ -n "${counters[bay]:-}" ] && echo 1 > "$LED_BASE/disk$bay/shot" 2>/dev/null
-                counters[bay]="$reads $writes"
+            if [ -n "${counters[bay]:-}" ] && [ "${counters[bay]}" != "$reads $writes" ]; then
+                if [ "${blinking[bay]:-0}" -eq 0 ]; then
+                    tool set "disk$bay" blink "$ACTIVITY_ON_MS" "$ACTIVITY_OFF_MS" >/dev/null 2>&1
+                    blinking[bay]=1
+                fi
+            elif [ "${blinking[bay]:-0}" -eq 1 ]; then
+                tool set "disk$bay" on >/dev/null 2>&1
+                blinking[bay]=0
             fi
+            counters[bay]="$reads $writes"
         done
+
+        # The same for network traffic.
+        if [ -n "$net_dev" ] \
+            && read -r rx < "$SYS_NET/$net_dev/statistics/rx_bytes" 2>/dev/null \
+            && read -r tx < "$SYS_NET/$net_dev/statistics/tx_bytes" 2>/dev/null; then
+
+            if [ -n "$net_counter" ] && [ "$net_counter" != "$rx $tx" ]; then
+                if [ "$net_blinking" -eq 0 ]; then
+                    tool set netdev blink "$ACTIVITY_ON_MS" "$ACTIVITY_OFF_MS" >/dev/null 2>&1
+                    net_blinking=1
+                fi
+            elif [ "$net_blinking" -eq 1 ]; then
+                tool set netdev on >/dev/null 2>&1
+                net_blinking=0
+            fi
+            net_counter="$rx $tx"
+        fi
 
         sleep 0.2
         tick=$((tick + 1))
@@ -688,17 +634,12 @@ daemon_start() {
 }
 
 daemon_stop() {
-    local led
-
     if daemon_running; then
         kill "$(cat "$PIDFILE")" 2>/dev/null
     fi
     rm -f "$PIDFILE"
 
     # Hand the LEDs back to the saved manual settings.
-    for led in $(supported_leds); do
-        write_attr "$led" trigger "none" 2>/dev/null
-    done
     apply_config >/dev/null
 
     echo "Status daemon stopped."
@@ -722,116 +663,35 @@ daemon_command() {
     esac
 }
 
+# ============================================================
+# Commands
+# ============================================================
+
+need() {
+    [ "$1" -eq "$2" ] || {
+        echo "Usage: $0 $3" >&2
+        exit 2
+    }
+}
+
 case "${1:-help}" in
+    status) status ;;
+    list) list_leds ;;
+    all) all_leds ;;
+    apply) apply_config ;;
+    bays) bays_json ;;
+    daemon) daemon_command "${2:-status}" ;;
 
-    status)
-        status
-        ;;
+    get) need $# 2 "get <led>"; get_status "$2" ;;
+    on) need $# 2 "on <led>"; set_on "$2" ;;
+    off) need $# 2 "off <led>"; set_off "$2" ;;
+    stop) need $# 2 "stop <led>"; stop_effect "$2" ;;
+    brightness) need $# 3 "brightness <led> <0-255>"; set_brightness "$2" "$3" ;;
+    color) need $# 5 "color <led> <R> <G> <B>"; set_color "$2" "$3" "$4" "$5" ;;
+    blink) need $# 4 "blink <led> <on_ms> <off_ms>"; set_effect blink "$2" "$3" "$4" ;;
+    breath) need $# 4 "breath <led> <on_ms> <off_ms>"; set_effect breath "$2" "$3" "$4" ;;
 
-    list)
-        list_leds
-        ;;
-
-    all)
-        all_leds
-        ;;
-
-    apply)
-        apply_config
-        ;;
-
-    bays)
-        bays_json
-        ;;
-
-    daemon)
-        daemon_command "${2:-status}"
-        ;;
-
-    get)
-        [ $# -eq 2 ] || {
-            echo "Usage: $0 get <led>" >&2
-            exit 2
-        }
-
-        get_status "$2"
-        ;;
-
-    on)
-        [ $# -eq 2 ] || {
-            echo "Usage: $0 on <led>" >&2
-            exit 2
-        }
-
-        set_on "$2"
-        ;;
-
-    off)
-        [ $# -eq 2 ] || {
-            echo "Usage: $0 off <led>" >&2
-            exit 2
-        }
-
-        set_off "$2"
-        ;;
-
-    brightness)
-        [ $# -eq 3 ] || {
-            echo "Usage: $0 brightness <led> <0-255>" >&2
-            exit 2
-        }
-
-        set_brightness "$2" "$3"
-        ;;
-
-    color)
-        [ $# -eq 5 ] || {
-            echo "Usage: $0 color <led> <R> <G> <B>" >&2
-            exit 2
-        }
-
-        set_color "$2" "$3" "$4" "$5"
-        ;;
-
-    blink)
-        [ $# -eq 4 ] || {
-            echo "Usage: $0 blink <led> <on_ms> <off_ms>" >&2
-            exit 2
-        }
-
-        set_blink "$2" "$3" "$4"
-        ;;
-
-    breath)
-        [ $# -eq 4 ] || {
-            echo "Usage: $0 breath <led> <on_ms> <off_ms>" >&2
-            exit 2
-        }
-
-        set_breath "$2" "$3" "$4"
-        ;;
-
-    stop)
-        [ $# -eq 2 ] || {
-            echo "Usage: $0 stop <led>" >&2
-            exit 2
-        }
-
-        stop_effect "$2"
-        ;;
-
-    trigger)
-        [ $# -eq 3 ] || {
-            echo "Usage: $0 trigger <led> <trigger>" >&2
-            exit 2
-        }
-
-        set_trigger "$2" "$3"
-        ;;
-
-    help|--help|-h)
-        usage
-        ;;
+    help|--help|-h) usage ;;
 
     *)
         echo "ERROR: Unknown command '$1'." >&2

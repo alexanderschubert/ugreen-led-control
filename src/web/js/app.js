@@ -309,7 +309,7 @@
         const facts = [
             ['Modell', state.model],
             ['Laufwerksschächte', state.bays || '—'],
-            ['Treiber', state.status.controller || '—'],
+            ['Ansteuerung', state.status.controller || '—'],
             ['LED-Controller', state.status.i2c_address ? `angemeldet (I²C-Bus ${state.status.i2c_bus}, Adresse ${state.status.i2c_address})` : 'nicht angemeldet – keine LEDs verfügbar'],
             ['LEDs gefunden', state.order.length ? state.order.join(', ') : 'keine'],
             ['Kernel', state.status.kernel || '—'],

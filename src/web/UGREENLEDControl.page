@@ -262,7 +262,7 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
         <dl class="ulc-facts">
             <dt>Plugin</dt><dd>UGREEN LED Control <span id="ulc-version"></span></dd>
             <dt>Quellcode</dt><dd><a href="https://github.com/alexanderschubert/ugreen-led-control" target="_blank" rel="noopener">github.com/alexanderschubert/ugreen-led-control</a></dd>
-            <dt>Treiber</dt><dd><a href="https://github.com/miskcoo/ugreen_leds_controller" target="_blank" rel="noopener">miskcoo/ugreen_leds_controller</a> (GPL-2.0)</dd>
+            <dt>Protokoll</dt><dd>nach <a href="https://github.com/miskcoo/ugreen_leds_controller" target="_blank" rel="noopener">miskcoo/ugreen_leds_controller</a>, ohne Kernel-Modul</dd>
             <dt>Lizenz</dt><dd>MIT</dd>
         </dl>
     </article>

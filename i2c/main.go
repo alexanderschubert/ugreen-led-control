@@ -11,7 +11,7 @@ import (
 
 const usage = `Usage:
   ugreen-led-i2c [--bus /dev/i2c-N] [--force] probe
-  ugreen-led-i2c [--bus /dev/i2c-N] [--force] get <led[,led...]|all>
+  ugreen-led-i2c [--bus /dev/i2c-N] [--force] [--plain] get <led[,led...]|all>
   ugreen-led-i2c [--bus /dev/i2c-N] [--force] set <led[,led...]|all> <command>
 
 LEDs:     power, netdev, disk1 ... disk8
@@ -20,6 +20,8 @@ Commands: color <R> <G> <B> | brightness <0-255> | on | off
 
 --bus     the SMBus device (default: the "SMBus I801 adapter")
 --force   use the address even while a kernel driver (led_ugreen) holds it
+--plain   get prints one line per LED for shell scripts:
+          <name> <mode> <brightness> <R> <G> <B> <on_ms> <off_ms>
 `
 
 func main() {
@@ -41,6 +43,7 @@ func run(args []string) int {
 	flags.Usage = func() { fmt.Fprint(os.Stderr, usage) }
 	busPath := flags.String("bus", "", "")
 	force := flags.Bool("force", false, "")
+	plain := flags.Bool("plain", false, "")
 
 	if err := flags.Parse(args); err != nil {
 		return 2
@@ -107,7 +110,13 @@ func run(args []string) int {
 			}
 			statuses[name] = s
 		}
-		if len(leds) == 1 {
+		if *plain {
+			for _, name := range leds {
+				if s, ok := statuses[name]; ok {
+					fmt.Println(plainLine(s))
+				}
+			}
+		} else if len(leds) == 1 {
 			printJSON(statuses[leds[0]])
 		} else {
 			printJSON(statuses)

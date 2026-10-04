@@ -1,80 +1,21 @@
 #!/bin/bash
-
-# UGREEN LED Control
-# Hardware and driver detection
+#
+# UGREEN LED Control – read-only hardware check.
+# Usage: bash scripts/detect-hardware.sh [path/to/ugreen-led-i2c]
+#
 
 set -u
 
-KERNEL="$(uname -r)"
+TOOL="${1:-/usr/local/emhttp/plugins/ugreen-led-control/backend/ugreen-led-i2c}"
 
-echo "=================================================="
-echo "UGREEN LED CONTROL – HARDWARE DETECTION"
-echo "=================================================="
+echo "Model:   $(cat /sys/class/dmi/id/product_name 2>/dev/null || echo unknown)"
+echo "Kernel:  $(uname -r)"
+echo "SMBus:   $(grep -H . /sys/bus/i2c/devices/i2c-*/name 2>/dev/null | grep -i 'SMBus I801' || echo 'no SMBus I801 adapter')"
+echo "i2c-dev: $(grep -q '^i2c_dev ' /proc/modules && echo loaded || echo 'not loaded (modprobe i2c-dev)')"
 
-echo
-echo "===== SYSTEM ====="
-echo "Kernel: $KERNEL"
-
-echo
-echo "===== I2C DEVICE ====="
-
-I2C_DEVICE="/sys/bus/i2c/devices/0-003a"
-
-if [ -d "$I2C_DEVICE" ]; then
-    echo "I2C device: FOUND"
-    echo "Address: 0x3a"
+if grep -q '^led_ugreen ' /proc/modules; then
+    echo "Note:    led_ugreen is loaded and holds 0x3a; the probe below uses --force."
+    "$TOOL" --force probe
 else
-    echo "I2C device: NOT FOUND"
+    "$TOOL" probe
 fi
-
-echo
-echo "===== DRIVER ====="
-
-if lsmod | grep -q '^led_ugreen '; then
-    echo "led_ugreen: LOADED"
-else
-    echo "led_ugreen: NOT LOADED"
-fi
-
-DRIVER_PATH="$(modinfo -n led_ugreen 2>/dev/null || true)"
-
-if [ -n "$DRIVER_PATH" ]; then
-    echo "Driver: $DRIVER_PATH"
-else
-    echo "Driver: NOT INSTALLED"
-fi
-
-echo
-echo "===== LED DEVICES ====="
-
-LED_COUNT=0
-
-for LED in /sys/class/leds/*; do
-    if [ -d "$LED" ]; then
-        NAME="$(basename "$LED")"
-
-        case "$NAME" in
-            power|netdev|disk[1-8])
-                echo "FOUND: $NAME"
-                LED_COUNT=$((LED_COUNT + 1))
-                ;;
-        esac
-    fi
-done
-
-echo
-echo "LED count: $LED_COUNT"
-
-echo
-echo "===== HARDWARE RESULT ====="
-
-if [ "$LED_COUNT" -gt 0 ]; then
-    echo "UGREEN LED hardware: DETECTED"
-    echo "Status: READY"
-else
-    echo "UGREEN LED hardware: NOT DETECTED"
-    echo "Status: NOT READY"
-fi
-
-echo
-echo "=================================================="
