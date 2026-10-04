@@ -897,6 +897,7 @@
 }
 
 .ulc-bay {
+    container-type: inline-size;
     display: grid;
     grid-template-rows: auto 1fr auto auto;
     justify-items: center;
@@ -920,9 +921,10 @@
     padding: 2px 4px;
     border-radius: 4px;
     color: #e5e9ee;
-    font: 600 clamp(9px, 1vw, 16px)/1.15 "DIN Alternate", "Bahnschrift", "Arial Narrow", sans-serif;
+    /* Sized by the bay's own width (container query), so "Standby" fits narrow bays without breaking. */
+    font: 600 clamp(8px, 17cqi, 16px)/1.15 "DIN Alternate", "Bahnschrift", "Arial Narrow", sans-serif;
     text-align: center;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
 }
 
 .ulc-bay-info.standby {
@@ -1127,10 +1129,6 @@
 
 .ulc-dash .ulc-bay-no {
     font-size: 15px;
-}
-
-.ulc-dash .ulc-bay-info {
-    font-size: 11px;
 }
 
 /* Same footprint as the 32 px font icons of Unraid's own tiles. */
