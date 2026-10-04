@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.11.0">
+<!ENTITY version   "0.12.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,10 @@
 >
 
 <CHANGES>
+
+### 0.12.0
+- Status mode shows parity checks and rebuilds: array disks breathe in their own colour (disks with errors keep the error colour); the Laufwerke page shows the progress
+- Spun-down disks are dimmed (or normal / off, as chosen); bay cards show standby, temperature and read/write errors
 
 ### 0.11.0
 - Unraid alerts: while Unraid has unread warnings (or only alerts, as chosen), the power LED blinks in the alert colour; once they are read or archived it returns to normal (System page, checked every minute)

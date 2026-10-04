@@ -241,7 +241,45 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
     <article class="ulc-card">
         <h2 data-i18n="bays.title">Zuordnung &amp; Status</h2>
         <p class="ulc-muted" data-i18n="bays.intro">Welche Platte in welchem Schacht steckt und wie Unraid sie meldet. Im Statusmodus zeigen die LEDs genau das an.</p>
+        <p class="ulc-hint" id="ulc-sync-state" hidden></p>
         <div class="ulc-bays" id="ulc-bays"></div>
+    </article>
+    <article class="ulc-card">
+        <h2 data-i18n="display.title">Statusanzeige</h2>
+        <p class="ulc-muted" data-i18n="display.intro">Wie die Laufwerks-LEDs im Statusmodus zusätzlich Unraid-Zustände zeigen.</p>
+
+        <label class="ulc-switch-row">
+            <span class="ulc-switch">
+                <input type="checkbox" id="ulc-sync-enabled">
+                <span></span>
+            </span>
+            <span>
+                <strong data-i18n="display.sync">Paritätsprüfung und Rebuild anzeigen</strong>
+                <small data-i18n="display.sync_hint">Array-Platten atmen in dieser Farbe, solange Unraid prüft oder neu aufbaut. Platten mit Fehler bleiben in der Fehlerfarbe.</small>
+            </span>
+        </label>
+
+        <div class="ulc-form">
+            <label data-i18n="display.sync_color">Farbe bei Prüfung</label>
+            <div id="ulc-sync-color"></div>
+
+            <label for="ulc-standby-mode" data-i18n="display.standby">Platten im Standby</label>
+            <select id="ulc-standby-mode">
+                <option value="dim" data-i18n="display.standby_dim">Gedimmt</option>
+                <option value="normal" data-i18n="display.standby_normal">Normal</option>
+                <option value="off" data-i18n="display.standby_off">Aus</option>
+            </select>
+
+            <label for="ulc-standby-level" data-i18n="display.standby_level">Helligkeit im Standby</label>
+            <div class="ulc-inline">
+                <input type="range" id="ulc-standby-level" min="5" max="100" step="5" value="30">
+                <output class="ulc-value" id="ulc-standby-level-value">30%</output>
+            </div>
+        </div>
+
+        <div class="ulc-actions">
+            <button type="button" class="ulc-btn primary" id="ulc-display-save"><span class="ulc-ico" data-ulc-icon="check"></span><span data-i18n="common.save">Speichern</span></button>
+        </div>
     </article>
 </section>
 

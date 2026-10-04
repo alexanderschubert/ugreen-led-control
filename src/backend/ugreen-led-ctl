@@ -10,6 +10,7 @@ HERE="$(dirname "$(readlink -f "$0")")"
 LED_TOOL="${UGREEN_LED_I2C:-$HERE/ugreen-led-i2c}"
 CONFIG="${UGREEN_LED_CONFIG:-/boot/config/plugins/ugreen-led-control/leds.cfg}"
 DISKS_INI="${UGREEN_DISKS_INI:-/var/local/emhttp/disks.ini}"
+VAR_INI="${UGREEN_VAR_INI:-/var/local/emhttp/var.ini}"
 SYS_BLOCK="${UGREEN_SYS_BLOCK:-/sys/block}"
 SYS_NET="${UGREEN_SYS_NET:-/sys/class/net}"
 PIDFILE="${UGREEN_PIDFILE:-/var/run/ugreen-led-control.pid}"
@@ -23,6 +24,7 @@ DYNAMIX_CFG="${UGREEN_DYNAMIX_CFG:-/boot/config/plugins/dynamix/dynamix.cfg}"
 DEFAULT_DISK_COLOR="255 160 0"
 DEFAULT_NETDEV_COLOR="0 200 83"
 DEFAULT_ERROR_COLOR="255 59 48"
+DEFAULT_SYNC_COLOR="0 120 255"
 
 # Hardware blink while a disk or the network is busy.
 ACTIVITY_ON_MS=100
@@ -219,6 +221,14 @@ status() {
     fi
     printf '  "fx_leds": "%s",\n' "$(config_value fx_leds)"
     printf '  "identify": %s,\n' "$(identifying_leds)"
+    local sync
+    sync="$(sync_state)"
+    printf '  "sync_action": "%s",\n' "${sync%% *}"
+    printf '  "sync_percent": %s,\n' "$([ -n "$sync" ] && echo "${sync##* }" || echo 0)"
+    printf '  "sync_enabled": %s,\n' "$([ "$(config_value sync_enabled)" = 0 ] && echo false || echo true)"
+    printf '  "sync_color": "%s",\n' "$(config_value sync_color | grep . || echo "$DEFAULT_SYNC_COLOR")"
+    printf '  "standby_mode": "%s",\n' "$(config_value standby_mode | grep . || echo dim)"
+    printf '  "standby_level": %s,\n' "$(config_value standby_level | grep . || echo 30)"
     printf '  "alert_enabled": %s,\n' "$([ "$(config_value alert_enabled)" = 1 ] && echo true || echo false)"
     printf '  "alert_level": "%s",\n' "$(config_value alert_level | grep . || echo warning)"
     printf '  "alert_color": "%s",\n' "$(config_value alert_color | grep . || echo "$DEFAULT_ERROR_COLOR")"
@@ -579,15 +589,54 @@ bay_device() {
     done
 }
 
-# Unraid's view of a device: "<slot> <status>", e.g. "disk2 DISK_OK".
+# Unraid's view of a device: "<slot> <status> <spundown 0|1> <temp|-> <errors>",
+# e.g. "disk2 DISK_OK 1 - 0". The fields are spread over the whole section.
 unraid_disk() {
     awk -F'"' -v dev="$1" '
-        /^\[/ { name = ""; device = ""; status = "" }
+        function out() {
+            if (device == dev && name != "") {
+                print name, status, (spundown == "" ? 0 : spundown), (temp ~ /^[0-9]+$/ ? temp : "-"), (errors == "" ? 0 : errors)
+                found = 1
+                exit
+            }
+        }
+        /^\[/ { out(); name = device = status = spundown = temp = errors = "" }
         /^name=/ { name = $2 }
         /^device=/ { device = $2 }
         /^status=/ { status = $2 }
-        device == dev && status != "" { print name, status; exit }
+        /^spundown=/ { spundown = $2 }
+        /^temp=/ { temp = $2 }
+        /^numErrors=/ { errors = $2 }
+        END { if (!found) out() }
     ' "$DISKS_INI" 2>/dev/null
+}
+
+# A running parity check/rebuild: "<check|recon|clear> <percent>", nothing when idle.
+sync_state() {
+    awk -F'"' '
+        /^mdResync=/ { resync = $2 }
+        /^mdResyncPos=/ { pos = $2 }
+        /^mdResyncSize=/ { size = $2 }
+        /^mdResyncAction=/ { split($2, words, " "); action = words[1] }
+        END { if (resync != "" && resync != "0") print action, (size > 0 ? int(pos * 100 / size) : 0) }
+    ' "$VAR_INI" 2>/dev/null
+}
+
+# Brightness of a spun-down disk: standby_mode normal|dim|off, standby_level in %.
+standby_brightness() {
+    local brightness="$1"
+    local level
+
+    case "$(config_value standby_mode | grep . || echo dim)" in
+        normal) echo "$brightness" ;;
+        off) echo 0 ;;
+        *)
+            level="$(config_value standby_level | grep . || echo 30)"
+            brightness=$((brightness * level / 100))
+            [ "$brightness" -lt 1 ] && brightness=1
+            echo "$brightness"
+            ;;
+    esac
 }
 
 is_error_status() {
@@ -603,6 +652,9 @@ bays_json() {
     local serial
     local slot
     local disk_status
+    local spundown
+    local temp
+    local errors
     local first=1
 
     printf '['
@@ -611,6 +663,9 @@ bays_json() {
         serial=""
         slot=""
         disk_status=""
+        spundown=0
+        temp="-"
+        errors=0
 
         if [ -n "$dev" ]; then
             serial="$(disk_serial "$dev")"
@@ -618,12 +673,17 @@ bays_json() {
             set -- $(unraid_disk "$dev")
             slot="${1:-}"
             disk_status="${2:-}"
+            spundown="${3:-0}"
+            temp="${4:--}"
+            errors="${5:-0}"
         fi
 
         [ "$first" -eq 1 ] || printf ','
-        printf '{"bay":%s,"led":"disk%s","device":"%s","serial":"%s","slot":"%s","status":"%s","error":%s}' \
+        printf '{"bay":%s,"led":"disk%s","device":"%s","serial":"%s","slot":"%s","status":"%s","error":%s,"standby":%s,"temp":%s,"errors":%s}' \
             "$bay" "$bay" "$dev" "$serial" "$slot" "$disk_status" \
-            "$(is_error_status "$disk_status" && echo true || echo false)"
+            "$(is_error_status "$disk_status" && echo true || echo false)" \
+            "$([ "$spundown" = 1 ] && echo true || echo false)" \
+            "$([ "$temp" = "-" ] && echo null || echo "$temp")" "$errors"
         first=0
     done
     printf ']\n'
@@ -662,10 +722,12 @@ log() {
     logger -t ugreen-led-control "$1" 2>/dev/null || echo "$1"
 }
 
-# A steady LED in the given colour and brightness ("R G B|brightness"), or off.
-show_steady() {
+# "steady|R G B|brightness", "breath|R G B|brightness" or "off".
+show_led() {
     local led="$1"
     local wanted="$2"
+    local mode="${wanted%%|*}"
+    local rest="${wanted#*|}"
 
     if [ "$wanted" = "off" ]; then
         tool set "$led" off >/dev/null 2>&1
@@ -673,9 +735,14 @@ show_steady() {
     fi
 
     # shellcheck disable=SC2086
-    tool set "$led" color ${wanted%|*} >/dev/null 2>&1
-    tool set "$led" brightness "${wanted#*|}" >/dev/null 2>&1
-    tool set "$led" on >/dev/null 2>&1
+    tool set "$led" color ${rest%|*} >/dev/null 2>&1
+    tool set "$led" brightness "${rest#*|}" >/dev/null 2>&1
+
+    if [ "$mode" = "breath" ]; then
+        tool set "$led" breath 1500 1500 >/dev/null 2>&1
+    else
+        tool set "$led" on >/dev/null 2>&1
+    fi
 }
 
 daemon_run() {
@@ -697,6 +764,8 @@ daemon_run() {
     local tx
     local night=0
     local brightness
+    local sync
+    local sync_color
     local -a devices=()
     local -a applied=()
     local -a counters=()
@@ -722,6 +791,11 @@ daemon_run() {
             night=0
             is_night && night=1
 
+            # Parity check / rebuild: array disks breathe in the sync colour.
+            sync=""
+            [ "$(config_value sync_enabled)" != "0" ] && sync="$(sync_state)"
+            sync_color="$(config_value sync_color | grep . || echo "$DEFAULT_SYNC_COLOR")"
+
             # Every 30 s everything is written again, which also undoes manual writes (Test, effects).
             if [ $((tick % 150)) -eq 0 ]; then
                 applied=()
@@ -740,21 +814,25 @@ daemon_run() {
                 fi
 
                 brightness="$(effective_brightness "$(saved_brightness "disk$bay")" "$night")"
+                set --
+                if [ -n "$dev" ]; then
+                    # shellcheck disable=SC2046
+                    set -- $(unraid_disk "$dev")
+                    [ "${3:-0}" = "1" ] && brightness="$(standby_brightness "$brightness")"
+                fi
 
                 if [ -z "$dev" ] || [ "$brightness" -eq 0 ]; then
                     wanted="off"
+                elif is_error_status "${2:-}"; then
+                    wanted="steady|$error_color|$brightness"
+                elif [ -n "$sync" ] && [ -n "${1:-}" ]; then
+                    wanted="breath|$sync_color|$brightness"
                 else
-                    # shellcheck disable=SC2046
-                    set -- $(unraid_disk "$dev")
-                    if is_error_status "${2:-}"; then
-                        wanted="$error_color|$brightness"
-                    else
-                        wanted="$(saved_color "disk$bay" "$DEFAULT_DISK_COLOR")|$brightness"
-                    fi
+                    wanted="steady|$(saved_color "disk$bay" "$DEFAULT_DISK_COLOR")|$brightness"
                 fi
 
                 if [ "${applied[bay]:-}" != "$wanted" ]; then
-                    show_steady "disk$bay" "$wanted"
+                    show_led "disk$bay" "$wanted"
                     applied[bay]="$wanted"
                     blinking[bay]=0
                 fi
@@ -766,13 +844,13 @@ daemon_run() {
                 if [ "$brightness" -eq 0 ]; then
                     wanted="off"
                 elif [ "$net_ok" -eq 1 ]; then
-                    wanted="$(saved_color netdev "$DEFAULT_NETDEV_COLOR")|$brightness"
+                    wanted="steady|$(saved_color netdev "$DEFAULT_NETDEV_COLOR")|$brightness"
                 else
-                    wanted="$error_color|$brightness"
+                    wanted="steady|$error_color|$brightness"
                 fi
 
                 if [ "$net_wanted" != "$wanted" ]; then
-                    show_steady netdev "$wanted"
+                    show_led netdev "$wanted"
                     net_wanted="$wanted"
                     net_blinking=0
                 fi
@@ -791,7 +869,11 @@ daemon_run() {
         # Every 0.2 s: blink while the read/write counters of a disk move.
         for bay in $(seq 1 "$bays"); do
             dev="${devices[bay]:-}"
-            [ -n "$dev" ] && [ "${applied[bay]:-}" != "off" ] || continue
+            [ -n "$dev" ] || continue
+            # Dark, breathing during a parity check, or being identified: no activity blink.
+            case "${applied[bay]:-}" in
+                off|breath\|*|identify) continue ;;
+            esac
             [ -e "${IDENTIFY_PREFIX}disk$bay" ] && continue
 
             read -r reads _ _ _ writes rest < "$SYS_BLOCK/$dev/stat" 2>/dev/null || continue

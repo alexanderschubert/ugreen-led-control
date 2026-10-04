@@ -264,6 +264,7 @@
             renderMode();
             renderNight();
             renderAlerts();
+            renderDisplay();
             await loadBays();
         } catch (error) {
             renderStatus(false, error.message);
@@ -680,11 +681,68 @@
                     <small>${bay.device ? `/dev/${escapeHtml(bay.device)}${bay.slot ? ` · ${escapeHtml(bay.slot)}` : ''}` : escapeHtml(t('bays.no_disk'))}</small>
                     ${bay.serial ? `<small>${escapeHtml(bay.serial)}</small>` : ''}
                     <span class="ulc-state ${kind}">${escapeHtml(text)}</span>
+                    ${bay.device ? `<small>${escapeHtml(bayCondition(bay))}</small>` : ''}
                     ${identifyButton(bay.led)}
                 </div>`;
         }).join('');
 
         container.querySelectorAll('.ulc-led[data-led]').forEach(element => paintLed(element, element.dataset.led));
+    }
+
+    // "Standby", "38 °C" and read/write errors, as far as Unraid knows them.
+    function bayCondition(bay) {
+        const parts = [bay.standby ? t('bays.standby') : bay.temp != null ? `${bay.temp} °C` : ''];
+        if (bay.errors > 0) parts.push(t('bays.errors', { n: bay.errors }));
+        return parts.filter(Boolean).join(' · ');
+    }
+
+    /* Status display (parity check, standby) */
+
+    function renderDisplay() {
+        const status = state.status;
+        const sync = q('#ulc-sync-state');
+
+        sync.hidden = !status.sync_action;
+        if (status.sync_action) {
+            sync.textContent = t(`sync.${status.sync_action}`, { percent: status.sync_percent });
+        }
+
+        const card = q('#ulc-display-save').closest('.ulc-card');
+        if (card.contains(document.activeElement)) return;
+
+        q('#ulc-sync-enabled').checked = status.sync_enabled !== false;
+
+        const color = q('#ulc-sync-color');
+        if (!color.firstElementChild) color.innerHTML = colorInput('#0078ff');
+        setColorInput(color, rgbToHex(status.sync_color || '0 120 255'));
+
+        q('#ulc-standby-mode').value = status.standby_mode || 'dim';
+
+        const level = q('#ulc-standby-level');
+        level.value = status.standby_level || 30;
+        setRangeFill(level);
+        q('#ulc-standby-level-value').textContent = `${level.value}%`;
+        level.closest('.ulc-inline').classList.toggle('disabled', q('#ulc-standby-mode').value !== 'dim');
+    }
+
+    function saveDisplay() {
+        const hex = normalizeHex(q('#ulc-sync-color input[type="text"]').value);
+
+        if (!hex) {
+            toast(t('colors.invalid'), 'error');
+            return;
+        }
+
+        return run(
+            () => api({
+                action: 'status_display',
+                sync_enabled: q('#ulc-sync-enabled').checked ? '1' : '0',
+                standby_mode: q('#ulc-standby-mode').value,
+                standby_level: q('#ulc-standby-level').value,
+                ...hexToRgb(hex)
+            }, true),
+            t('display.saved')
+        );
     }
 
     const identifying = led => (state.status.identify || []).includes(led);
@@ -1007,6 +1065,17 @@
 
         // The alert colour is only saved with the button, not on every pick.
         bindColorInputs(q('#ulc-alert-color'), () => {});
+        bindColorInputs(q('#ulc-sync-color'), () => {});
+        q('#ulc-display-save').addEventListener('click', saveDisplay);
+
+        const standbyLevel = q('#ulc-standby-level');
+        standbyLevel.addEventListener('input', () => {
+            setRangeFill(standbyLevel);
+            q('#ulc-standby-level-value').textContent = `${standbyLevel.value}%`;
+        });
+        q('#ulc-standby-mode').addEventListener('change', event => {
+            standbyLevel.closest('.ulc-inline').classList.toggle('disabled', event.target.value !== 'dim');
+        });
         q('#ulc-alert-save').addEventListener('click', saveAlerts);
 
         q('#ulc-bays').addEventListener('click', event => {

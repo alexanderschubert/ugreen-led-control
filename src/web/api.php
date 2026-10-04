@@ -285,6 +285,50 @@ if ($method === 'POST') {
         ]);
     }
 
+    if ($action === 'status_display') {
+        $rgb = [];
+
+        foreach (['r', 'g', 'b'] as $channel) {
+            $value = filter_var($input[$channel] ?? null, FILTER_VALIDATE_INT);
+
+            if ($value === false || $value < 0 || $value > 255) {
+                respond([
+                    'ok' => false,
+                    'error' => 'RGB values must be 0-255'
+                ], 400);
+            }
+
+            $rgb[] = $value;
+        }
+
+        $standbyMode = (string)($input['standby_mode'] ?? '');
+        $standbyLevel = filter_var($input['standby_level'] ?? null, FILTER_VALIDATE_INT);
+
+        if (!in_array($standbyMode, ['normal', 'dim', 'off'], true) || $standbyLevel === false || $standbyLevel < 1 || $standbyLevel > 100) {
+            respond([
+                'ok' => false,
+                'error' => 'Invalid status display values'
+            ], 400);
+        }
+
+        // The status daemon reads these every 5 seconds.
+        $saved = save_settings([
+            'sync_enabled' => ($input['sync_enabled'] ?? '') === '1' ? '1' : '0',
+            'sync_color' => implode(' ', $rgb),
+            'standby_mode' => $standbyMode,
+            'standby_level' => (string)$standbyLevel
+        ]);
+
+        if (!$saved) {
+            respond([
+                'ok' => false,
+                'error' => CONFIG_FILE . ' is not writable'
+            ], 500);
+        }
+
+        respond(['ok' => true]);
+    }
+
     if ($action === 'alerts') {
         $level = (string)($input['level'] ?? '');
         $rgb = [];
