@@ -7,6 +7,7 @@
 set -u
 
 LED_BASE="${UGREEN_LED_BASE:-/sys/class/leds}"
+CONFIG="${UGREEN_LED_CONFIG:-/boot/config/plugins/ugreen-led-control/leds.cfg}"
 
 # The driver always creates disk1..disk8; only the bays the model has are real.
 product_name() {
@@ -37,6 +38,7 @@ Usage:
   ugreen-led-ctl list
   ugreen-led-ctl get <led>
   ugreen-led-ctl all
+  ugreen-led-ctl apply        (restore the settings saved by the web UI)
   ugreen-led-ctl on <led>
   ugreen-led-ctl off <led>
   ugreen-led-ctl brightness <led> <0-255>
@@ -304,6 +306,49 @@ stop_effect() {
     write_attr "$led" trigger "none" 2>/dev/null || true
 }
 
+# Read one value from the settings file without sourcing it: key="value"
+config_value() {
+    sed -n "s/^$1=\"\(.*\)\"\$/\1/p" "$CONFIG" 2>/dev/null | tail -n 1
+}
+
+apply_config() {
+    local led
+    local color
+    local brightness
+    local effect
+    local on_ms
+    local off_ms
+
+    if [ ! -f "$CONFIG" ]; then
+        echo "No saved settings ($CONFIG)."
+        return 0
+    fi
+
+    for led in $(supported_leds); do
+        valid_led "$led" || continue
+
+        color="$(config_value "${led}_color")"
+        brightness="$(config_value "${led}_brightness")"
+        effect="$(config_value "${led}_effect")"
+        on_ms="$(config_value "${led}_on")"
+        off_ms="$(config_value "${led}_off")"
+
+        # shellcheck disable=SC2086 # "R G B" is meant to split into three arguments
+        [ -n "$color" ] && set_color "$led" $color
+
+        # Brightness first: it resets the trigger, and an effect needs a lit LED.
+        [ -n "$brightness" ] && set_brightness "$led" "$brightness"
+
+        case "$effect" in
+            blink) set_blink "$led" "${on_ms:-450}" "${off_ms:-450}" ;;
+            breath) set_breath "$led" "${on_ms:-1200}" "${off_ms:-900}" ;;
+            none) stop_effect "$led" ;;
+        esac
+    done
+
+    echo "Saved settings applied."
+}
+
 set_trigger() {
     local led="$1"
     local trigger="$2"
@@ -328,6 +373,10 @@ case "${1:-help}" in
 
     all)
         all_leds
+        ;;
+
+    apply)
+        apply_config
         ;;
 
     get)

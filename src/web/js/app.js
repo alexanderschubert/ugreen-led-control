@@ -294,6 +294,7 @@
             ['I²C', state.status.i2c_address ? `Bus ${state.status.i2c_bus}, Adresse ${state.status.i2c_address}` : '—'],
             ['Kernel', state.status.kernel || '—'],
             ['ugreenleds-driver Monitor', state.status.foreign_monitor ? 'läuft (überschreibt Laufwerks- und Netzwerk-LED)' : 'läuft nicht'],
+            ['Gespeicherte Einstellungen', state.status.settings_saved ? 'ja – werden beim Booten wiederhergestellt' : 'noch keine'],
             ['Plugin-Version', window.UGREEN_LED_VERSION || '—'],
             ['Status', online ? 'Verbunden' : `Keine Verbindung: ${error || ''}`]
         ];

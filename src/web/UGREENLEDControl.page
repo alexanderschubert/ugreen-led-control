@@ -88,7 +88,7 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
                 </span>
                 <span>
                     <strong>LED-Steuerung aktivieren</strong>
-                    <small>Schaltet alle LEDs am NAS ein oder aus.</small>
+                    <small>Schaltet alle LEDs am NAS ein oder aus. Änderungen bleiben nach einem Neustart erhalten.</small>
                 </span>
             </label>
 
