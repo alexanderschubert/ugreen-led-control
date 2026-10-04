@@ -53,17 +53,24 @@ func ioctl(fd, request, arg uintptr) error {
 }
 
 // findBus returns the I801 SMBus adapter the controller sits on, e.g. /dev/i2c-0.
+// The adapter is listed under /sys/bus/i2c even before i2c-dev creates /dev/i2c-N.
 func findBus() (string, error) {
-	names, _ := filepath.Glob("/sys/class/i2c-dev/i2c-*/device/name")
+	names, _ := filepath.Glob("/sys/bus/i2c/devices/i2c-*/name")
 
 	for _, name := range names {
 		content, err := os.ReadFile(name)
-		if err == nil && strings.HasPrefix(string(content), "SMBus I801 adapter") {
-			return "/dev/" + filepath.Base(filepath.Dir(filepath.Dir(name))), nil
+		if err != nil || !strings.HasPrefix(string(content), "SMBus I801 adapter") {
+			continue
 		}
+
+		path := "/dev/" + filepath.Base(filepath.Dir(name))
+		if _, err := os.Stat(path); err != nil {
+			return "", fmt.Errorf("%s is missing; load the i2c-dev module (modprobe i2c-dev)", path)
+		}
+		return path, nil
 	}
 
-	return "", errors.New("no SMBus I801 adapter found (is the i2c-dev module loaded?)")
+	return "", errors.New("no SMBus I801 adapter found")
 }
 
 func openBus(path string, force bool) (*bus, error) {
