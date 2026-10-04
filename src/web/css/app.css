@@ -731,6 +731,7 @@
 }
 
 .ulc .ulc-effect {
+    container-type: inline-size;
     display: grid;
     gap: 6px;
     justify-items: center;
@@ -750,7 +751,10 @@
     margin-bottom: 4px;
 }
 
+/* Long names ("Temperature") must fit narrow tiles instead of being cut off. */
 .ulc .ulc-effect strong {
+    max-width: 100%;
+    font-size: clamp(11px, 15cqi, 14px);
     font-weight: 600;
 }
 

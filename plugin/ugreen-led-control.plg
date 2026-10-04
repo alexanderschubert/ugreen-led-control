@@ -27,6 +27,7 @@
 
 ### 0.15.1
 - Fix: "Standby" broke over two lines in the small case pictures; the text in the bays now scales with the bay width
+- Fix: long effect names ("Temperature") were cut off in narrow effect tiles
 
 ### 0.15.0
 - Dashboard tile: Unraid's dashboard (6.12+) gets a "UGREEN LED Control" tile with the case picture, live LED colours, each bay's temperature or state, and mode / night / alert
