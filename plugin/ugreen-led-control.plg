@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.4.0">
+<!ENTITY version   "0.5.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -23,6 +23,11 @@
 >
 
 <CHANGES>
+
+### 0.5.0
+- Status mode: disk LEDs blink on activity and switch to the error colour when Unraid reports a disabled, invalid or missing disk; empty bays stay dark; the network LED blinks with traffic and turns to the error colour without link or gateway
+- Bays are matched to disks by SATA port (DXP6800 Pro), shown on the Laufwerke page
+- The status daemon steps aside while the ugreenleds-driver monitor is running
 
 ### 0.4.0
 - Settings made in the web interface are saved on the boot device (USB flash drive or SSD) and restored at boot
@@ -159,6 +164,11 @@ chmod 755 "${PLUGIN_DIR}/backend/ugreen-led-ctl"
 
 if lsmod | grep -q '^led_ugreen '; then
     "${PLUGIN_DIR}/backend/ugreen-led-ctl" apply | sed 's/^/[UGREEN LED Control] /'
+
+    # Restart also replaces a daemon still running the previous version's code.
+    if grep -qx 'mode="status"' "${BOOT_DIR}/leds.cfg" 2>/dev/null; then
+        "${PLUGIN_DIR}/backend/ugreen-led-ctl" daemon restart 2>&1 | sed 's/^/[UGREEN LED Control] /'
+    fi
 fi
 
 #
@@ -194,6 +204,10 @@ KERNEL="$(uname -r)"
 log() {
     echo "[UGREEN LED Control] $1"
 }
+
+if [ -x "${PLUGIN_DIR}/backend/ugreen-led-ctl" ]; then
+    "${PLUGIN_DIR}/backend/ugreen-led-ctl" daemon stop >/dev/null 2>&1
+fi
 
 rm -rf "${PLUGIN_DIR}"
 

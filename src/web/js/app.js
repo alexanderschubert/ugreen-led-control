@@ -74,6 +74,7 @@
         order: [],
         leds: {},
         status: {},
+        bayInfo: [],
         busy: 0,
         tab: 'system',
         target: 'all',
@@ -87,6 +88,11 @@
         target === 'all' ? state.order
             : target === 'disks' ? disks()
                 : [target];
+
+    const statusMode = () => state.status.mode === 'status';
+
+    // In status mode the daemon drives disk and network LEDs; only colour and brightness stay manual.
+    const managed = led => statusMode() && (led === 'netdev' || led.startsWith('disk'));
 
     const ledLabel = led =>
         led === 'power' ? 'Power LED'
@@ -234,9 +240,22 @@
             if (baysChanged) buildLayout();
 
             renderStatus(true);
+            renderMode();
+            loadBays();
         } catch (error) {
             renderStatus(false, error.message);
         }
+    }
+
+    async function loadBays() {
+        try {
+            const data = await api({ action: 'bays' });
+            state.bayInfo = data.bays || [];
+        } catch (error) {
+            state.bayInfo = [];
+        }
+
+        renderBays();
     }
 
     async function refresh() {
@@ -388,8 +407,8 @@
             { key: 'power', label: 'Power LED', icon: 'power', leds: ['power'], def: DEFAULTS.power },
             { key: 'netdev', label: 'Netzwerk LED', icon: 'network', leds: ['netdev'], def: DEFAULTS.netdev },
             { key: 'disks', label: 'Laufwerk Aktivität', sub: '(alle Schächte)', icon: 'drives', leds: disks(), def: DEFAULTS.disk },
-            { key: 'error', label: 'Laufwerk Fehlermeldung', icon: 'alert', leds: [], def: DEFAULTS.error, soon: true }
-        ].filter(row => row.soon || row.leds.every(led => state.order.includes(led)));
+            { key: 'error', label: 'Laufwerk Fehlermeldung', sub: statusMode() ? '' : '(nur im Statusmodus)', icon: 'alert', leds: [], def: DEFAULTS.error, soon: !statusMode() }
+        ].filter(row => row.key === 'error' || row.leds.every(led => state.order.includes(led)));
     }
 
     const colorInput = (value, disabled = false) => `
@@ -407,7 +426,7 @@
         container.innerHTML = container._rows.map(row => `
             <div class="ulc-color-row ${row.soon ? 'ulc-disabled' : ''}" data-row="${row.key}">
                 ${icon(row.icon)}
-                <span>${escapeHtml(row.label)} ${row.sub ? `<small>${escapeHtml(row.sub)}</small>` : ''}${row.soon ? '<em class="ulc-soon">bald</em>' : ''}</span>
+                <span>${escapeHtml(row.label)} ${row.sub ? `<small>${escapeHtml(row.sub)}</small>` : ''}</span>
                 ${colorInput(row.def, row.soon)}
                 <button type="button" class="ulc-icon-btn" data-reset title="Auf Standard zurücksetzen" ${row.soon ? 'disabled' : ''}>${icon('reset')}</button>
             </div>`).join('');
@@ -426,11 +445,16 @@
 
         for (const row of container._rows || []) {
             const element = container.querySelector(`[data-row="${row.key}"]`);
+
+            if (!element || element.contains(document.activeElement)) continue;
+
+            if (row.key === 'error') {
+                setColorInput(element, rgbToHex(state.status.disk_error_color || '255 59 48'));
+                continue;
+            }
+
             const led = row.leds[0];
-
-            if (!element || !led || !state.leds[led] || element.contains(document.activeElement)) continue;
-
-            setColorInput(element, state.leds[led].color);
+            if (led && state.leds[led]) setColorInput(element, state.leds[led].color);
         }
     }
 
@@ -493,8 +517,100 @@
             range.value = Math.round(s.brightness / 2.55);
             setRangeFill(range);
 
-            row.querySelector('[data-led-effect]').value = currentEffect([led]);
+            const effect = row.querySelector('[data-led-effect]');
+            effect.value = currentEffect([led]);
+            effect.disabled = managed(led);
+            effect.title = managed(led) ? 'Im Statusmodus gesteuert' : '';
         });
+    }
+
+    function renderMode() {
+        const status = statusMode();
+        const target = q('#ulc-target');
+
+        q('#ulc-mode').value = status ? 'status' : 'manual';
+        q('#ulc-mode-hint').hidden = !status;
+
+        // Effects would fight the daemon on disk and network LEDs.
+        [...target.options].forEach(option => {
+            option.disabled = status && option.value !== 'power';
+        });
+
+        if (status && state.target !== 'power') {
+            state.target = 'power';
+            target.value = 'power';
+        }
+
+        const container = q('#ulc-colors');
+        const errorRow = (container._rows || []).find(row => row.key === 'error');
+
+        if (errorRow && errorRow.soon === status) buildColors();
+
+        renderEffects();
+        renderTables();
+    }
+
+    const STATUS_TEXT = {
+        DISK_OK: 'OK',
+        DISK_NP: 'nicht zugewiesen',
+        DISK_INVALID: 'ungültig',
+        DISK_DSBL: 'deaktiviert',
+        DISK_DSBL_NEW: 'deaktiviert (neu)',
+        DISK_WRONG: 'falsche Platte',
+        DISK_NP_MISSING: 'fehlt',
+        DISK_NEW: 'neu'
+    };
+
+    function renderBays() {
+        const container = q('#ulc-bays');
+
+        if (!state.bayInfo.length) {
+            container.innerHTML = '<p class="ulc-muted">Keine Zuordnung verfügbar.</p>';
+            return;
+        }
+
+        container.innerHTML = state.bayInfo.map(bay => {
+            const kind = !bay.device ? 'empty' : bay.error ? 'error' : '';
+            const text = !bay.device ? 'leer'
+                : bay.status ? (STATUS_TEXT[bay.status] || bay.status)
+                    : 'außerhalb von Unraid';
+
+            return `
+                <div class="ulc-bay-card ${kind}">
+                    <strong><span class="ulc-led" data-led="${escapeHtml(bay.led)}"></span>Schacht ${bay.bay}</strong>
+                    <small>${bay.device ? `/dev/${escapeHtml(bay.device)}${bay.slot ? ` · ${escapeHtml(bay.slot)}` : ''}` : 'Keine Platte erkannt'}</small>
+                    ${bay.serial ? `<small>${escapeHtml(bay.serial)}</small>` : ''}
+                    <span class="ulc-state ${kind}">${escapeHtml(text)}</span>
+                </div>`;
+        }).join('');
+
+        container.querySelectorAll('.ulc-led[data-led]').forEach(element => paintLed(element, element.dataset.led));
+    }
+
+    async function setMode(mode) {
+        await run(
+            () => api({ action: 'mode', value: mode }, true),
+            mode === 'status' ? 'Statusmodus aktiv' : 'Manueller Modus aktiv'
+        );
+
+        await loadStatus();
+    }
+
+    function applyErrorColor(hex) {
+        const value = normalizeHex(hex);
+
+        if (!value) {
+            toast('Bitte eine Farbe im Format #RRGGBB angeben.', 'error');
+            renderColors();
+            return;
+        }
+
+        state.status.disk_error_color = Object.values(hexToRgb(value)).join(' ');
+
+        return run(
+            () => api({ action: 'error_color', ...hexToRgb(value) }, true),
+            'Fehlerfarbe gespeichert'
+        );
     }
 
     /*
@@ -650,7 +766,7 @@
      * ---------------------------------------------------------
      */
 
-    function bindColorInputs(container, ledsFor) {
+    function bindColorInputs(container, applyFor) {
         container.addEventListener('input', event => {
             if (event.target.type !== 'color') return;
             event.target.closest('.ulc-swatch').style.setProperty('--c', event.target.value);
@@ -663,8 +779,7 @@
             if (input.type !== 'color' && input.type !== 'text') return;
             if (!input.closest('.ulc-color-input')) return;
 
-            const leds = ledsFor(input);
-            if (leds.length) applyColor(leds, input.value);
+            applyFor(input, input.value);
         });
     }
 
@@ -703,6 +818,8 @@
             state.dragging = false;
         });
 
+        q('#ulc-mode').addEventListener('change', event => setMode(event.target.value));
+
         /* Colours */
 
         qa('[data-tab]').forEach(button => {
@@ -715,10 +832,15 @@
 
         const colors = q('#ulc-colors');
 
-        bindColorInputs(colors, input => {
-            const key = input.closest('[data-row]').dataset.row;
-            return (colors._rows.find(row => row.key === key) || {}).leds || [];
-        });
+        const applyRow = (key, value) => {
+            const row = colors._rows.find(r => r.key === key);
+
+            if (!row || row.soon) return;
+            if (key === 'error') return applyErrorColor(value);
+            if (row.leds.length) return applyColor(row.leds, value);
+        };
+
+        bindColorInputs(colors, (input, value) => applyRow(input.closest('[data-row]').dataset.row, value));
 
         colors.addEventListener('click', event => {
             const button = event.target.closest('[data-reset]');
@@ -726,7 +848,7 @@
 
             const key = button.closest('[data-row]').dataset.row;
             const row = colors._rows.find(r => r.key === key);
-            if (row) applyColor(row.leds, row.def);
+            if (row) applyRow(key, row.def);
         });
 
         /* Effects */
@@ -777,7 +899,7 @@
         /* Per-LED tables */
 
         for (const table of [q('#ulc-led-table'), q('#ulc-bay-table')]) {
-            bindColorInputs(table, input => [input.closest('[data-led-row]').dataset.ledRow]);
+            bindColorInputs(table, (input, value) => applyColor([input.closest('[data-led-row]').dataset.ledRow], value));
 
             table.addEventListener('input', event => {
                 if (event.target.matches('[data-brightness]')) setRangeFill(event.target);

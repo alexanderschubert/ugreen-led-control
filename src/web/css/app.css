@@ -497,6 +497,77 @@
     background: var(--ulc-accent);
 }
 
+.ulc-hint {
+    margin: 14px 0 0;
+    padding: 10px 12px;
+    border-left: 3px solid var(--ulc-accent);
+    border-radius: 6px;
+    background: rgba(47, 124, 246, .1);
+    color: #c3d6f5;
+    font-size: 13px;
+}
+
+.ulc-hint[hidden] {
+    display: none;
+}
+
+/* ---------- Bay mapping ---------- */
+
+.ulc-bays {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+}
+
+.ulc-bay-card {
+    display: grid;
+    gap: 4px;
+    padding: 12px 14px;
+    border: 1px solid var(--ulc-border);
+    border-radius: 10px;
+    background: var(--ulc-card-2);
+}
+
+.ulc-bay-card strong {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.ulc-bay-card .ulc-led {
+    width: 22px;
+    height: 6px;
+}
+
+.ulc-bay-card small {
+    color: var(--ulc-muted);
+    overflow-wrap: anywhere;
+}
+
+.ulc-bay-card.error {
+    border-color: rgba(239, 68, 68, .6);
+}
+
+.ulc-state {
+    justify-self: start;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: rgba(34, 197, 94, .14);
+    color: #4ade80;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.ulc-state.error {
+    background: rgba(239, 68, 68, .15);
+    color: #fca5a5;
+}
+
+.ulc-state.empty {
+    background: rgba(255, 255, 255, .06);
+    color: var(--ulc-muted);
+}
+
 /* ---------- Tabs & colour rows ---------- */
 
 .ulc-tabs {

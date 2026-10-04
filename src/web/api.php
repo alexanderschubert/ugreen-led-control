@@ -66,26 +66,15 @@ function config_changes(array $args): array
     return [];
 }
 
-function save_config(array $leds, array $changes): bool
+function read_settings(): array
 {
     // Values are always quoted, so parse_ini_file keeps "none" and "0" as they are.
-    $config = is_file(CONFIG_FILE) ? (parse_ini_file(CONFIG_FILE) ?: []) : [];
+    return is_file(CONFIG_FILE) ? (parse_ini_file(CONFIG_FILE) ?: []) : [];
+}
 
-    // The first save of an LED also records what it shows right now, so a reboot
-    // restores the whole look and not only the attribute that was changed.
-    $current = json_decode(run_backend(['all'])['output'], true) ?: [];
-
-    foreach ($leds as $led) {
-        foreach ($changes as $key => $value) {
-            $config["{$led}_{$key}"] = (string)$value;
-        }
-
-        foreach (['color', 'brightness', 'effect'] as $key) {
-            if (!isset($config["{$led}_{$key}"]) && isset($current[$led][$key])) {
-                $config["{$led}_{$key}"] = (string)$current[$led][$key];
-            }
-        }
-    }
+function save_settings(array $changes): bool
+{
+    $config = array_merge(read_settings(), array_map('strval', $changes));
 
     ksort($config);
 
@@ -101,6 +90,30 @@ function save_config(array $leds, array $changes): bool
     $tmp = CONFIG_FILE . '.tmp';
 
     return file_put_contents($tmp, $content) !== false && rename($tmp, CONFIG_FILE);
+}
+
+function save_config(array $leds, array $changes): bool
+{
+    $config = read_settings();
+    $updates = [];
+
+    // The first save of an LED also records what it shows right now, so a reboot
+    // restores the whole look and not only the attribute that was changed.
+    $current = json_decode(run_backend(['all'])['output'], true) ?: [];
+
+    foreach ($leds as $led) {
+        foreach ($changes as $key => $value) {
+            $updates["{$led}_{$key}"] = $value;
+        }
+
+        foreach (['color', 'brightness', 'effect'] as $key) {
+            if (!isset($config["{$led}_{$key}"]) && !isset($updates["{$led}_{$key}"]) && isset($current[$led][$key])) {
+                $updates["{$led}_{$key}"] = $current[$led][$key];
+            }
+        }
+    }
+
+    return save_settings($updates);
 }
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -161,6 +174,22 @@ if ($method === 'GET') {
                 'leds' => $data
             ]);
 
+        case 'bays':
+            $result = run_backend(['bays']);
+            $data = json_decode($result['output'], true);
+
+            if ($result['code'] !== 0 || !is_array($data)) {
+                respond([
+                    'ok' => false,
+                    'error' => $result['output']
+                ], 500);
+            }
+
+            respond([
+                'ok' => true,
+                'bays' => $data
+            ]);
+
         case 'led':
             $led = $_GET['led'] ?? '';
 
@@ -197,6 +226,61 @@ if ($method === 'POST') {
     $input = $_POST;
 
     $action = $input['action'] ?? '';
+
+    if ($action === 'mode') {
+        $mode = $input['value'] ?? '';
+
+        if ($mode !== 'manual' && $mode !== 'status') {
+            respond([
+                'ok' => false,
+                'error' => 'Invalid mode'
+            ], 400);
+        }
+
+        $result = run_backend(['daemon', $mode === 'status' ? 'restart' : 'stop']);
+
+        if ($result['code'] !== 0) {
+            respond([
+                'ok' => false,
+                'error' => $result['output']
+            ], 500);
+        }
+
+        // Saved only once the daemon accepted it, so a refused start stays "manual".
+        save_settings(['mode' => $mode]);
+
+        respond([
+            'ok' => true,
+            'mode' => $mode
+        ]);
+    }
+
+    if ($action === 'error_color') {
+        $rgb = [];
+
+        foreach (['r', 'g', 'b'] as $channel) {
+            $value = filter_var($input[$channel] ?? null, FILTER_VALIDATE_INT);
+
+            if ($value === false || $value < 0 || $value > 255) {
+                respond([
+                    'ok' => false,
+                    'error' => 'RGB values must be 0-255'
+                ], 400);
+            }
+
+            $rgb[] = $value;
+        }
+
+        // The status daemon picks it up within 5 seconds.
+        if (!save_settings(['disk_error_color' => implode(' ', $rgb)])) {
+            respond([
+                'ok' => false,
+                'error' => CONFIG_FILE . ' ist nicht beschreibbar'
+            ], 500);
+        }
+
+        respond(['ok' => true]);
+    }
 
     // One LED or a comma-separated list, e.g. "disk1,disk2,disk3".
     $leds = explode(',', (string)($input['led'] ?? ''));

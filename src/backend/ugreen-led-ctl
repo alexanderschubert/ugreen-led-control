@@ -8,9 +8,17 @@ set -u
 
 LED_BASE="${UGREEN_LED_BASE:-/sys/class/leds}"
 CONFIG="${UGREEN_LED_CONFIG:-/boot/config/plugins/ugreen-led-control/leds.cfg}"
+DISKS_INI="${UGREEN_DISKS_INI:-/var/local/emhttp/disks.ini}"
+SYS_BLOCK="${UGREEN_SYS_BLOCK:-/sys/block}"
+SYS_NET="${UGREEN_SYS_NET:-/sys/class/net}"
+PIDFILE="/var/run/ugreen-led-control.pid"
+
+DEFAULT_DISK_COLOR="255 160 0"
+DEFAULT_ERROR_COLOR="255 59 48"
 
 # The driver always creates disk1..disk8; only the bays the model has are real.
 product_name() {
+    [ -n "${UGREEN_PRODUCT:-}" ] && { echo "$UGREEN_PRODUCT"; return; }
     cat /sys/class/dmi/id/product_name 2>/dev/null || echo "UGREEN NAS"
 }
 
@@ -39,6 +47,8 @@ Usage:
   ugreen-led-ctl get <led>
   ugreen-led-ctl all
   ugreen-led-ctl apply        (restore the settings saved by the web UI)
+  ugreen-led-ctl bays         (which disk sits in which bay)
+  ugreen-led-ctl daemon start|stop|restart|status|run
   ugreen-led-ctl on <led>
   ugreen-led-ctl off <led>
   ugreen-led-ctl brightness <led> <0-255>
@@ -179,6 +189,14 @@ status() {
     printf '  "model": "%s",\n' "$(product_name)"
     printf '  "bays": %s,\n' "$(bay_count)"
     printf '  "kernel": "%s",\n' "$(uname -r)"
+    printf '  "mode": "%s",\n' "$(config_value mode | grep -x status || echo manual)"
+    if daemon_running; then
+        printf '  "daemon": true,\n'
+    else
+        printf '  "daemon": false,\n'
+    fi
+    printf '  "disk_error_color": "%s",\n' "$(config_value disk_error_color | grep . || echo "$DEFAULT_ERROR_COLOR")"
+    printf '  "network_device": "%s",\n' "$(network_device)"
     printf '  "controller": "led_ugreen",\n'
     printf '  "i2c_bus": 0,\n'
     printf '  "i2c_address": "0x3a",\n'
@@ -361,6 +379,339 @@ set_trigger() {
     write_attr "$led" trigger "$trigger"
 }
 
+# ============================================================
+# Status mode: bays, disk activity/health and network
+# ============================================================
+
+# SATA port of each bay, left to right. DXP6800 Pro verified against disk serials.
+bay_ports() {
+    case "$(product_name)" in
+        "DXP6800 Pro") echo "ata3 ata4 ata5 ata6 ata1 ata2" ;;
+    esac
+}
+
+disk_serial() {
+    udevadm info -q property -n "/dev/$1" 2>/dev/null | sed -n 's/^ID_SERIAL_SHORT=//p'
+}
+
+# Block device (sdX) in a bay. A saved bay<N>_serial wins over the port table.
+bay_device() {
+    local bay="$1"
+    local serial
+    local port
+    local dev
+
+    serial="$(config_value "bay${bay}_serial")"
+    # shellcheck disable=SC2046
+    set -- $(bay_ports)
+    eval "port=\${$bay:-}"
+
+    for dev in "$SYS_BLOCK"/sd*; do
+        [ -e "$dev" ] || continue
+
+        if [ -n "$serial" ]; then
+            [ "$(disk_serial "${dev##*/}")" = "$serial" ] && { echo "${dev##*/}"; return; }
+        elif [ -n "$port" ]; then
+            case "$(readlink -f "$dev/device")" in
+                */"$port"/*) echo "${dev##*/}"; return ;;
+            esac
+        fi
+    done
+}
+
+# Unraid's view of a device: "<slot> <status>", e.g. "disk2 DISK_OK".
+unraid_disk() {
+    awk -F'"' -v dev="$1" '
+        /^\[/ { name = ""; device = ""; status = "" }
+        /^name=/ { name = $2 }
+        /^device=/ { device = $2 }
+        /^status=/ { status = $2 }
+        device == dev && status != "" { print name, status; exit }
+    ' "$DISKS_INI" 2>/dev/null
+}
+
+is_error_status() {
+    case "$1" in
+        DISK_INVALID|DISK_DSBL|DISK_DSBL_NEW|DISK_WRONG|DISK_NP_MISSING) return 0 ;;
+    esac
+    return 1
+}
+
+bays_json() {
+    local bay
+    local dev
+    local serial
+    local slot
+    local disk_status
+    local first=1
+
+    printf '['
+    for bay in $(seq 1 "$(bay_count)"); do
+        dev="$(bay_device "$bay")"
+        serial=""
+        slot=""
+        disk_status=""
+
+        if [ -n "$dev" ]; then
+            serial="$(disk_serial "$dev")"
+            # shellcheck disable=SC2046
+            set -- $(unraid_disk "$dev")
+            slot="${1:-}"
+            disk_status="${2:-}"
+        fi
+
+        [ "$first" -eq 1 ] || printf ','
+        printf '{"bay":%s,"led":"disk%s","device":"%s","serial":"%s","slot":"%s","status":"%s","error":%s}' \
+            "$bay" "$bay" "$dev" "$serial" "$slot" "$disk_status" \
+            "$(is_error_status "$disk_status" && echo true || echo false)"
+        first=0
+    done
+    printf ']\n'
+}
+
+# The interface behind the default route; a bridge is resolved to its uplink (e.g. br0 -> bond0).
+network_device() {
+    local dev
+    local port
+
+    dev="$(ip route show default 2>/dev/null | sed -n 's/.* dev \([^ ]*\).*/\1/p' | head -n 1)"
+
+    if [ -n "$dev" ] && [ -d "$SYS_NET/$dev/brif" ]; then
+        for port in "$SYS_NET/$dev/brif"/*; do
+            case "${port##*/}" in
+                veth*|vnet*|tap*|docker*|virbr*|\*) ;;
+                *) dev="${port##*/}"; break ;;
+            esac
+        done
+    fi
+
+    echo "$dev"
+}
+
+network_ok() {
+    local dev="$1"
+    local gateway
+
+    [ "$(cat "$SYS_NET/$dev/operstate" 2>/dev/null)" = "up" ] || return 1
+
+    gateway="$(ip route show default 2>/dev/null | sed -n 's/^default via \([^ ]*\).*/\1/p' | head -n 1)"
+    [ -z "$gateway" ] || ping -c 1 -W 2 "$gateway" >/dev/null 2>&1
+}
+
+log() {
+    logger -t ugreen-led-control "$1" 2>/dev/null || echo "$1"
+}
+
+# Saved per-LED colour/brightness, with the status-mode defaults.
+saved_color() {
+    config_value "${1}_color" | grep . || echo "$2"
+}
+
+saved_brightness() {
+    config_value "${1}_brightness" | grep . || echo 255
+}
+
+# Lit LED that the oneshot trigger blinks off briefly on every "shot".
+setup_activity_led() {
+    local led="$1"
+    local color="$2"
+    local brightness="$3"
+
+    # shellcheck disable=SC2086
+    set_color "$led" $color >/dev/null
+    write_attr "$led" blink_type "none" 2>/dev/null
+    write_attr "$led" trigger "oneshot" 2>/dev/null
+    write_attr "$led" invert 1 2>/dev/null
+    write_attr "$led" delay_on 60 2>/dev/null
+    write_attr "$led" delay_off 60 2>/dev/null
+    # After the trigger: invert switches to full brightness, this sets the real one.
+    write_attr "$led" brightness "$brightness" 2>/dev/null
+}
+
+setup_network_led() {
+    local dev="$1"
+    local color="$2"
+    local brightness="$3"
+
+    # shellcheck disable=SC2086
+    set_color netdev $color >/dev/null
+    write_attr netdev blink_type "none" 2>/dev/null
+    write_attr netdev trigger "netdev" 2>/dev/null
+    write_attr netdev device_name "$dev" 2>/dev/null
+    write_attr netdev link 1 2>/dev/null
+    write_attr netdev rx 1 2>/dev/null
+    write_attr netdev tx 1 2>/dev/null
+    write_attr netdev brightness "$brightness" 2>/dev/null
+}
+
+daemon_run() {
+    local bays
+    local tick=0
+    local bay
+    local dev
+    local reads
+    local writes
+    local rest
+    local wanted
+    local net_dev
+    local net_wanted=""
+    local net_ok=1
+    local error_color
+    local -a devices=()
+    local -a applied=()
+    local -a counters=()
+
+    bays="$(bay_count)"
+    net_dev="$(network_device)"
+
+    trap 'log "status daemon stopped"; exit 0' TERM INT
+    log "status daemon started (bays: $bays, network: ${net_dev:-none})"
+
+    while :; do
+        # Every 5 s: which disk is where, Unraid's disk status, saved colours.
+        if [ $((tick % 25)) -eq 0 ]; then
+            # Two monitors would overwrite each other forever; leave the LEDs to the other one.
+            if foreign_monitor_running; then
+                log "ugreenleds-driver monitor is running, status daemon exits"
+                rm -f "$PIDFILE"
+                exit 0
+            fi
+
+            error_color="$(config_value disk_error_color | grep . || echo "$DEFAULT_ERROR_COLOR")"
+
+            for bay in $(seq 1 "$bays"); do
+                valid_led "disk$bay" || continue
+
+                dev="$(bay_device "$bay")"
+                devices[bay]="$dev"
+
+                if [ -z "$dev" ]; then
+                    wanted="empty"
+                else
+                    # shellcheck disable=SC2046
+                    set -- $(unraid_disk "$dev")
+                    if is_error_status "${2:-}"; then
+                        wanted="$error_color|$(saved_brightness "disk$bay")"
+                    else
+                        wanted="$(saved_color "disk$bay" "$DEFAULT_DISK_COLOR")|$(saved_brightness "disk$bay")"
+                    fi
+                fi
+
+                # A manual write (test, effect) replaces the trigger; set it up again.
+                if [ "$wanted" != "empty" ] && [ "$(read_selected "disk$bay" trigger)" != "oneshot" ]; then
+                    applied[bay]=""
+                fi
+
+                if [ "${applied[bay]:-}" != "$wanted" ]; then
+                    if [ "$wanted" = "empty" ]; then
+                        write_attr "disk$bay" trigger "none" 2>/dev/null
+                        write_attr "disk$bay" brightness 0 2>/dev/null
+                    else
+                        setup_activity_led "disk$bay" "${wanted%|*}" "${wanted#*|}"
+                    fi
+                    applied[bay]="$wanted"
+                    counters[bay]=""
+                fi
+            done
+        fi
+
+        # Network: link and gateway every 30 s, the LED setup checked every 5 s.
+        if [ $((tick % 150)) -eq 0 ] && [ -n "$net_dev" ]; then
+            if network_ok "$net_dev"; then
+                net_ok=1
+            else
+                net_ok=0
+            fi
+        fi
+
+        if [ $((tick % 25)) -eq 0 ] && [ -n "$net_dev" ] && valid_led netdev; then
+            if [ "$net_ok" -eq 1 ]; then
+                wanted="$(saved_color netdev "0 200 83")|$(saved_brightness netdev)"
+            else
+                wanted="$error_color|$(saved_brightness netdev)"
+            fi
+
+            [ "$(read_selected netdev trigger)" = "netdev" ] || net_wanted=""
+
+            if [ "$net_wanted" != "$wanted" ]; then
+                setup_network_led "$net_dev" "${wanted%|*}" "${wanted#*|}"
+                net_wanted="$wanted"
+            fi
+        fi
+
+        # Every 0.2 s: blink a bay whose read/write counters moved.
+        for bay in $(seq 1 "$bays"); do
+            dev="${devices[bay]:-}"
+            [ -n "$dev" ] || continue
+
+            read -r reads _ _ _ writes rest < "$SYS_BLOCK/$dev/stat" 2>/dev/null || continue
+
+            if [ "${counters[bay]:-}" != "$reads $writes" ]; then
+                [ -n "${counters[bay]:-}" ] && echo 1 > "$LED_BASE/disk$bay/shot" 2>/dev/null
+                counters[bay]="$reads $writes"
+            fi
+        done
+
+        sleep 0.2
+        tick=$((tick + 1))
+    done
+}
+
+daemon_running() {
+    [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE" 2>/dev/null)" 2>/dev/null
+}
+
+daemon_start() {
+    if daemon_running; then
+        echo "Status daemon is already running."
+        return 0
+    fi
+
+    if foreign_monitor_running; then
+        echo "ERROR: The LED monitor of ugreenleds-driver is running; uninstall that plugin first." >&2
+        return 1
+    fi
+
+    setsid "$(readlink -f "$0")" daemon run </dev/null >/dev/null 2>&1 &
+    echo $! > "$PIDFILE"
+    echo "Status daemon started."
+}
+
+daemon_stop() {
+    local led
+
+    if daemon_running; then
+        kill "$(cat "$PIDFILE")" 2>/dev/null
+    fi
+    rm -f "$PIDFILE"
+
+    # Hand the LEDs back to the saved manual settings.
+    for led in $(supported_leds); do
+        write_attr "$led" trigger "none" 2>/dev/null
+    done
+    apply_config >/dev/null
+
+    echo "Status daemon stopped."
+}
+
+daemon_command() {
+    case "${1:-status}" in
+        start) daemon_start ;;
+        stop) daemon_stop ;;
+        restart) daemon_stop >/dev/null; daemon_start ;;
+        run) daemon_run ;;
+        status)
+            if daemon_running; then
+                echo "running (pid $(cat "$PIDFILE"))"
+            else
+                echo "stopped"
+                return 3
+            fi
+            ;;
+        *) echo "Usage: $0 daemon start|stop|restart|status|run" >&2; return 2 ;;
+    esac
+}
+
 case "${1:-help}" in
 
     status)
@@ -377,6 +728,14 @@ case "${1:-help}" in
 
     apply)
         apply_config
+        ;;
+
+    bays)
+        bays_json
+        ;;
+
+    daemon)
+        daemon_command "${2:-status}"
         ;;
 
     get)
