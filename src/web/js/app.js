@@ -496,12 +496,15 @@
                 <span>${escapeHtml(ledLabel(led))}<small>${led}</small></span>
                 ${colorInput('#ffffff')}
                 <input type="range" min="0" max="100" step="1" value="0" data-brightness aria-label="Helligkeit">
-                <select data-led-effect aria-label="Effekt">
-                    <option value="static">Statisch</option>
-                    <option value="breath">Atmen</option>
-                    <option value="blink">Pulsierend</option>
-                    <option value="off">Aus</option>
-                </select>
+                <div class="ulc-effect-cell">
+                    <select data-led-effect aria-label="Effekt">
+                        <option value="static">Statisch</option>
+                        <option value="breath">Atmen</option>
+                        <option value="blink">Pulsierend</option>
+                        <option value="off">Aus</option>
+                    </select>
+                    <span class="ulc-managed" data-managed hidden title="Im Statusmodus zeigt diese LED Aktivität und Fehler an">Statusmodus</span>
+                </div>
             </div>`).join('');
     }
 
@@ -509,6 +512,11 @@
         qa('[data-led-row]').forEach(row => {
             const led = row.dataset.ledRow;
             const s = state.leds[led];
+            const effect = row.querySelector('[data-led-effect]');
+
+            // In status mode the effect belongs to the daemon; say so instead of a dead select.
+            effect.hidden = managed(led);
+            row.querySelector('[data-managed]').hidden = !managed(led);
 
             if (!s || row.contains(document.activeElement)) return;
 
@@ -518,10 +526,7 @@
             range.value = Math.round(s.brightness / 2.55);
             setRangeFill(range);
 
-            const effect = row.querySelector('[data-led-effect]');
             effect.value = currentEffect([led]);
-            effect.disabled = managed(led);
-            effect.title = managed(led) ? 'Im Statusmodus gesteuert' : '';
         });
     }
 
@@ -531,6 +536,9 @@
 
         q('#ulc-mode').value = status ? 'status' : 'manual';
         q('#ulc-mode-hint').hidden = !status;
+        qa('[data-status-hint]').forEach(hint => {
+            hint.hidden = !status;
+        });
 
         // Effects would fight the daemon on disk and network LEDs.
         [...target.options].forEach(option => {
