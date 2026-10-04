@@ -105,9 +105,15 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
                 <label for="ulc-mode">Standardmodus</label>
                 <select id="ulc-mode">
                     <option value="manual" selected>Manuell</option>
-                    <option value="status" disabled>Statusbasiert (bald)</option>
+                    <option value="status">Statusbasiert</option>
                 </select>
             </div>
+
+            <p class="ulc-hint" id="ulc-mode-hint" hidden>
+                Laufwerks-LEDs leuchten in ihrer Farbe, blinken bei Zugriffen und zeigen bei Fehlern die Fehlerfarbe.
+                Die Netzwerk-LED blinkt bei Datenverkehr und zeigt ohne Verbindung die Fehlerfarbe.
+                Effekte gelten in diesem Modus nur für die Power-LED.
+            </p>
         </article>
 
         <article class="ulc-card">
@@ -214,9 +220,10 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
         <p class="ulc-muted">Die LED unter jedem Schacht. Schacht 1 ist ganz links.</p>
         <div class="ulc-table" id="ulc-bay-table"></div>
     </article>
-    <article class="ulc-card ulc-later">
-        <h2>Laufwerksstatus <em class="ulc-soon">bald</em></h2>
-        <p class="ulc-muted">Aktivität und Fehler pro Laufwerk anzeigen, mit Zuordnung der Platten zu den Schächten über ihre Seriennummer.</p>
+    <article class="ulc-card">
+        <h2>Zuordnung &amp; Status</h2>
+        <p class="ulc-muted">Welche Platte in welchem Schacht steckt und wie Unraid sie meldet. Im Statusmodus zeigen die LEDs genau das an.</p>
+        <div class="ulc-bays" id="ulc-bays"></div>
     </article>
 </section>
 
