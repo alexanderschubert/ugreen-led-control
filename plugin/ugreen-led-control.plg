@@ -2,10 +2,11 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.5.1">
+<!ENTITY version   "0.6.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
+<!ENTITY releaseURL "https://github.com/alexanderschubert/ugreen-led-control/releases/download/v&version;">
 <!ENTITY pluginURL "&repo;/main/plugin/ugreen-led-control.plg">
 <!ENTITY bootDIR   "/boot/config/plugins/&name;">
 <!ENTITY srcDIR    "&bootDIR;/&version;">
@@ -23,6 +24,11 @@
 >
 
 <CHANGES>
+
+### 0.6.0
+- No kernel module any more: the plugin talks to the LED controller itself (ugreen-led-i2c over /dev/i2c-N), so Unraid updates with a new kernel keep the LEDs working
+- Status mode blinks disks and the network LED with the controller's own blink while there is activity
+- A led_ugreen driver from an older version is unloaded; its cached copy on the boot device is removed
 
 ### 0.5.1
 - Fix: without ugreenleds-driver no LEDs appeared, because the LED controller was never declared on the SMBus; the plugin now does that itself
@@ -66,6 +72,11 @@
 <URL>&gitURL;/src/backend/ugreen-led-ctl</URL>
 </FILE>
 
+<!-- Static binary built by the "Tag release" workflow and attached to the release -->
+<FILE Name="&srcDIR;/backend/ugreen-led-i2c">
+<URL>&releaseURL;/ugreen-led-i2c</URL>
+</FILE>
+
 <FILE Name="&srcDIR;/api.php">
 <URL>&gitURL;/src/web/api.php</URL>
 </FILE>
@@ -106,70 +117,25 @@ log() {
 log "Installing ${VERSION} on kernel ${KERNEL}"
 
 #
-# Driver
-#
-# Another plugin (e.g. ich777's ugreenleds-driver) may already provide
-# led_ugreen. Then we only use it and never touch it.
+# Hardware access: /dev/i2c-N, no kernel module.
 #
 
-DRIVER_CACHE="${BOOT_DIR}/driver/${KERNEL}/led-ugreen.ko.xz"
-DRIVER_TARGET="/lib/modules/${KERNEL}/extra/led-ugreen.ko.xz"
+# A status daemon of the previous version must not keep writing during the update.
+if [ -x "${PLUGIN_DIR}/backend/ugreen-led-ctl" ]; then
+    "${PLUGIN_DIR}/backend/ugreen-led-ctl" daemon stop >/dev/null 2>&1
+fi
 
+modprobe i2c-dev
+
+# Versions up to 0.5.1 used the led_ugreen kernel module; it would hold address 0x3a.
 if lsmod | grep -q '^led_ugreen '; then
-
-    log "led_ugreen is already loaded, using it."
-
-elif modinfo led_ugreen >/dev/null 2>&1; then
-
-    log "led_ugreen is installed, loading it."
-    modprobe led_ugreen
-
-else
-
-    if [ ! -f "${DRIVER_CACHE}" ]; then
-        log "Downloading led_ugreen for ${KERNEL}..."
-        mkdir -p "$(dirname "${DRIVER_CACHE}")"
-        if ! curl -fsSL -o "${DRIVER_CACHE}" \
-            "${GIT_URL}/driver/packages/${KERNEL}/led-ugreen.ko.xz"; then
-            rm -f "${DRIVER_CACHE}"
-            log "WARNING: No led_ugreen build for kernel ${KERNEL}."
-            log "WARNING: LED control is unavailable until a matching driver exists."
-        fi
-    fi
-
-    if [ -f "${DRIVER_CACHE}" ]; then
-        mkdir -p "$(dirname "${DRIVER_TARGET}")"
-        cp "${DRIVER_CACHE}" "${DRIVER_TARGET}"
-        chmod 644 "${DRIVER_TARGET}"
-        depmod -a "${KERNEL}"
-        if modprobe led_ugreen; then
-            echo "installed_by=${NAME}" > "${BOOT_DIR}/driver-state"
-            echo "kernel=${KERNEL}" >> "${BOOT_DIR}/driver-state"
-            log "led_ugreen loaded."
-        else
-            log "WARNING: led_ugreen could not be loaded."
-        fi
-    fi
-
-fi
-
-#
-# led_ugreen only creates the LEDs once the controller (0x3a) is declared
-# on the SMBus adapter. ugreenleds-driver used to do this for us.
-#
-
-if lsmod | grep -q '^led_ugreen ' && ! ls -d /sys/bus/i2c/devices/*-003a >/dev/null 2>&1; then
-    for adapter in /sys/bus/i2c/devices/i2c-*; do
-        if grep -q 'SMBus I801' "${adapter}/name" 2>/dev/null; then
-            echo "led-ugreen 0x3a" > "${adapter}/new_device" \
-                && log "LED controller declared on ${adapter##*/}."
-            break
-        fi
+    for device in /sys/bus/i2c/devices/*-003a; do
+        [ -e "${device}" ] || continue
+        echo 0x3a > "$(dirname "$(readlink -f "${device}")")/delete_device"
     done
-
-    ls -d /sys/bus/i2c/devices/*-003a >/dev/null 2>&1 \
-        || log "WARNING: LED controller 0x3a could not be declared; no LEDs available."
+    rmmod led_ugreen 2>/dev/null && log "Unloaded led_ugreen (no longer needed)."
 fi
+rm -rf "${BOOT_DIR}/driver" "${BOOT_DIR}/driver-state"
 
 #
 # Web interface
@@ -178,19 +144,21 @@ fi
 rm -rf "${PLUGIN_DIR}"
 mkdir -p "${PLUGIN_DIR}"
 cp -r "${SRC_DIR}/." "${PLUGIN_DIR}/"
-chmod 755 "${PLUGIN_DIR}/backend/ugreen-led-ctl"
+chmod 755 "${PLUGIN_DIR}/backend/ugreen-led-ctl" "${PLUGIN_DIR}/backend/ugreen-led-i2c"
 
 #
 # Restore the LED settings saved by the web interface (this also runs at boot)
 #
 
-if lsmod | grep -q '^led_ugreen '; then
+if "${PLUGIN_DIR}/backend/ugreen-led-i2c" probe >/dev/null 2>&1; then
     "${PLUGIN_DIR}/backend/ugreen-led-ctl" apply | sed 's/^/[UGREEN LED Control] /'
 
     # Restart also replaces a daemon still running the previous version's code.
     if grep -qx 'mode="status"' "${BOOT_DIR}/leds.cfg" 2>/dev/null; then
         "${PLUGIN_DIR}/backend/ugreen-led-ctl" daemon restart 2>&1 | sed 's/^/[UGREEN LED Control] /'
     fi
+else
+    log "WARNING: The LED controller does not answer on the SMBus; no LEDs available."
 fi
 
 #
@@ -199,7 +167,7 @@ fi
 
 for dir in "${BOOT_DIR}"/*/; do
     case "$(basename "${dir}")" in
-        "${VERSION}"|driver) ;;
+        "${VERSION}") ;;
         *) rm -rf "${dir}" ;;
     esac
 done
@@ -232,16 +200,6 @@ if [ -x "${PLUGIN_DIR}/backend/ugreen-led-ctl" ]; then
 fi
 
 rm -rf "${PLUGIN_DIR}"
-
-# Remove the driver only if this plugin installed it.
-if grep -q "^installed_by=${NAME}\$" "${BOOT_DIR}/driver-state" 2>/dev/null; then
-    log "Removing led_ugreen installed by this plugin."
-    modprobe -r led_ugreen 2>/dev/null
-    rm -f "/lib/modules/${KERNEL}/extra/led-ugreen.ko.xz"
-    depmod -a "${KERNEL}"
-else
-    log "led_ugreen was not installed by this plugin, leaving it."
-fi
 
 rm -rf "${BOOT_DIR}"
 

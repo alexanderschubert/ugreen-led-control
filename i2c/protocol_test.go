@@ -51,6 +51,13 @@ func TestParseStatus(t *testing.T) {
 	}
 }
 
+func TestPlainLine(t *testing.T) {
+	s := ledStatus{Name: "disk2", Mode: "breath", Brightness: 43, Color: "255 38 0", OnMs: 1200, OffMs: 900}
+	if got, want := plainLine(s), "disk2 breath 43 255 38 0 1200 900"; got != want {
+		t.Fatalf("plainLine = %q, want %q", got, want)
+	}
+}
+
 func TestParseStatusRejectsBadBlocks(t *testing.T) {
 	good := statusBlock(1, 255, 1, 2, 3, 0, 0)
 

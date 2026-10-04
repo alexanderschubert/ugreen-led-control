@@ -98,6 +98,11 @@ type ledStatus struct {
 
 var errBadStatus = errors.New("invalid status block")
 
+// plainLine is the --plain output: "<name> <mode> <brightness> <R> <G> <B> <on_ms> <off_ms>".
+func plainLine(s ledStatus) string {
+	return fmt.Sprintf("%s %s %d %s %d %d", s.Name, s.Mode, s.Brightness, s.Color, s.OnMs, s.OffMs)
+}
+
 // parseStatus decodes the 11-byte status block: mode, brightness, R, G, B,
 // cycle (2 bytes), on time (2 bytes), checksum (2 bytes) over the first nine.
 func parseStatus(name string, block []byte) (ledStatus, error) {

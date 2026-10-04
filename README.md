@@ -14,13 +14,13 @@ The settings page is at Settings → UGREEN LED Control.
 
 ## How it works
 
-- `led_ugreen` (see [driver/](driver/README.md)) exposes the LEDs as `/sys/class/leds/{power,netdev,disk1..8}`.
-- `src/backend/ugreen-led-ctl` reads and writes those sysfs files.
+- `i2c/` – `ugreen-led-i2c`, a static Go tool that talks to the LED controller (address 0x3a on the "SMBus I801 adapter") through `/dev/i2c-N`. No kernel module, so new Unraid kernels keep working. Protocol after [miskcoo/ugreen_leds_controller](https://github.com/miskcoo/ugreen_leds_controller).
+- `src/backend/ugreen-led-ctl` – settings (`apply`), bay mapping (`bays`) and the status daemon, on top of `ugreen-led-i2c`.
 - `src/web/api.php` is the JSON API for the settings page; writes need the WebGUI `csrf_token`.
 
 ## Development
 
-Copy the working tree onto the running system without a release:
+Copy the working tree onto the running system without a release. It needs `build/ugreen-led-i2c` (the CI artifact of the "I2C tool" workflow, e.g. `gh run download <id> -n ugreen-led-i2c -D build`):
 
 ```
 bash scripts/install-dev.sh
@@ -29,10 +29,10 @@ bash scripts/install-dev.sh
 ## Release
 
 1. Bump `version` and `CHANGES` in `plugin/ugreen-led-control.plg`.
-2. Merge to `main`. The `Tag release` workflow creates the tag `v<version>`.
+2. Merge to `main`. The `Tag release` workflow creates the tag `v<version>` and a release with the `ugreen-led-i2c` binary.
 
-The plugin downloads its files from that tag. Wait for the workflow to finish (about a minute) before updating in Unraid; an update attempted earlier can leave GitHub caching a 404 for up to five minutes.
+The plugin downloads its files from that tag and the binary from the release. Wait for the workflow to finish (about a minute) before updating in Unraid; an update attempted earlier can leave GitHub caching a 404 for up to five minutes.
 
 ## License
 
-MIT, except the kernel module in `driver/` (GPL-2.0).
+MIT.
