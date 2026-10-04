@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<Plugin>
+  <Name>UGREEN LED Control</Name>
+  <PluginURL>https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control/main/plugin/ugreen-led-control.plg</PluginURL>
+  <TemplateURL>https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control/main/plugins/ugreen-led-control.xml</TemplateURL>
+  <PluginAuthor>Alexander Schubert</PluginAuthor>
+  <Overview>LED control for UGREEN DX/DXP NAS devices. Set colour, brightness and effect for every front LED (static, breathe, pulse, rainbow, CPU temperature). In status mode the bay LEDs show disk activity, disabled or missing disks, rising SMART values, parity checks and rebuilds, spun-down disks and optionally each disk's temperature; the network LED shows traffic and link problems. Night mode, unread Unraid alerts on the power LED, identify a bay, a dashboard tile, and an English and German interface. It talks to the LED controller over I2C without a kernel module, so Unraid updates don't break it, and it never wakes sleeping disks. Developed on a DXP6800 Pro; uninstall ugreenleds-driver first.</Overview>
+  <Category>Tools:Utilities</Category>
+  <Project>https://github.com/alexanderschubert/ugreen-led-control</Project>
+  <Support>https://forums.unraid.net/topic/200791-plugin-ugreen-led-control-led-control-for-ugreen-dxdxp-nas/</Support>
+  <ReadMe>https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control/main/README.md</ReadMe>
+  <Icon>https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control/main/src/web/images/ugreen-led-control.png</Icon>
+  <License>MIT</License>
+</Plugin>
