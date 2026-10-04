@@ -1,5 +1,5 @@
 Menu="Dashboard:0"
-Icon="lightbulb-o"
+Icon="ugreen-led-control.png"
 Cond="version_compare(parse_ini_file('/etc/unraid-version')['version'], '6.12.0', '>=')"
 ---
 <?php
@@ -15,7 +15,7 @@ $mytiles['ugreen-led-control']['column2'] = <<<EOT
 <tr><td>
 <span class="tile-header">
 <span class="tile-header-left">
-<i class="fa fa-lightbulb-o f32"></i>
+<img src="/plugins/ugreen-led-control/images/ugreen-led-control.png" class="ulc-dash-icon" alt="">
 <div class="section"><h3 class="tile-header-main">UGREEN LED Control</h3><span id="ulc-dash-state"></span></div>
 </span>
 <span class="tile-header-right">

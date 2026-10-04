@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Small variant (tab icon, 18 px): six LEDs would blur, one light strip doesn't -->
+  <rect width="64" height="64" rx="14" fill="#1b222b"/>
+  <rect x="6" y="12" width="52" height="40" rx="6" fill="#c9ced4"/>
+  <rect x="10" y="16" width="44" height="30" rx="3" fill="#2a3139"/>
+  <rect x="12" y="35" width="40" height="7" rx="3.5" fill="#ffd60a"/>
+</svg>

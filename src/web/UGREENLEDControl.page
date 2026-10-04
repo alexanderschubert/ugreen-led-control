@@ -1,6 +1,6 @@
 Menu="Utilities"
 Title="UGREEN LED Control"
-Icon="lightbulb-o"
+Icon="ugreen-led-control.png"
 Markdown="false"
 ---
 <?php
@@ -32,7 +32,7 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
 <aside class="ulc-side">
 
     <div class="ulc-brand">
-        <div class="ulc-brand-icon"><span class="ulc-ico" data-ulc-icon="nas"></span></div>
+        <img class="ulc-brand-icon" src="/plugins/ugreen-led-control/images/ugreen-led-control.png" alt="">
         <div>
             <strong>UGREEN LED Control</strong>
             <small data-model>UGREEN NAS</small>

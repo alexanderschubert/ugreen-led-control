@@ -18,7 +18,7 @@
   version="&version;"
   launch="&launch;"
   pluginURL="&pluginURL;"
-  icon="lightbulb-o"
+  icon="ugreen-led-control.png"
   min="7.0.0"
   support="https://github.com/alexanderschubert/ugreen-led-control/issues"
 >
@@ -27,6 +27,7 @@
 
 ### 0.15.0
 - Dashboard tile: Unraid's dashboard (6.12+) gets a "UGREEN LED Control" tile with the case picture, live LED colours, each bay's temperature or state, and mode / night / alert
+- Own icon (the NAS front with coloured LEDs) on the Plugins page, the settings page, the dashboard tile and in the plugin's sidebar
 
 ### 0.14.2
 - Fix: the LED tables showed the controller's internal LED name ("disk1") under each bay, which looked like the Unraid slot; they now show the Unraid disk in the bay (e.g. "disk2 · /dev/sdc")
@@ -130,6 +131,14 @@
 
 <FILE Name="&srcDIR;/UGREENLEDDashboard.page">
 <URL>&gitURL;/src/web/UGREENLEDDashboard.page</URL>
+</FILE>
+
+<FILE Name="&srcDIR;/images/ugreen-led-control.png">
+<URL>&gitURL;/src/web/images/ugreen-led-control.png</URL>
+</FILE>
+
+<FILE Name="&srcDIR;/icons/ugreen-led-control.png">
+<URL>&gitURL;/src/web/icons/ugreen-led-control.png</URL>
 </FILE>
 
 <FILE Name="&srcDIR;/include/lang.php">
