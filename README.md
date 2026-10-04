@@ -29,9 +29,9 @@ bash scripts/install-dev.sh
 ## Release
 
 1. Bump `version` and `CHANGES` in `plugin/ugreen-led-control.plg`.
-2. Merge to `main`, then tag: `git tag v<version> && git push origin v<version>`.
+2. Merge to `main`. The `Tag release` workflow creates the tag `v<version>`.
 
-The plugin downloads its files from that tag, so the tag must exist before Unraid checks for updates.
+The plugin downloads its files from that tag. Wait for the workflow to finish (about a minute) before updating in Unraid; an update attempted earlier can leave GitHub caching a 404 for up to five minutes.
 
 ## License
 
