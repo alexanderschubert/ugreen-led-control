@@ -526,7 +526,7 @@
         container.innerHTML = leds.map(led => `
             <div class="ulc-led-row" data-led-row="${led}">
                 <span class="ulc-led" data-led="${led}"></span>
-                <span>${escapeHtml(ledLabel(led))}<small>${led}</small></span>
+                <span>${escapeHtml(ledLabel(led))}<small data-led-sub="${led}"></small></span>
                 ${colorInput('#ffffff')}
                 <input type="range" min="0" max="100" step="1" value="0" data-brightness aria-label="${t('brightness.label')}">
                 <div class="ulc-effect-cell">
@@ -695,6 +695,19 @@
         container.querySelectorAll('.ulc-led[data-led]').forEach(element => paintLed(element, element.dataset.led));
 
         renderCaseInfo();
+        renderLedSubtitles();
+    }
+
+    // Under a bay's name in the LED tables: the Unraid disk in it, not the
+    // controller's internal LED name (disk1..disk8), which reads like a slot.
+    function renderLedSubtitles() {
+        qa('[data-led-sub]').forEach(element => {
+            const bay = state.bayInfo.find(b => b.led === element.dataset.ledSub);
+
+            element.textContent = !bay ? ''
+                : !bay.device ? t('bays.no_disk')
+                    : [bay.slot, `/dev/${bay.device}`].filter(Boolean).join(' · ');
+        });
     }
 
     // Temperature or state in the middle of each bay of the case pictures.
