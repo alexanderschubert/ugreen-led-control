@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.7.0">
+<!ENTITY version   "0.8.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,12 @@
 >
 
 <CHANGES>
+
+### 0.8.0
+- Rainbow effect: a colour wave over the chosen LEDs, with speed and direction
+- Temperature effect: the LEDs show the CPU temperature from blue (35 °C) over green and yellow to red (65 °C)
+- "Nur im Leerlauf" pauses both while a disk is busy
+- Picking a colour or another effect for an LED ends a rainbow/temperature effect on it; in status mode they apply to the power LED only
 
 ### 0.7.0
 - Night mode (Zeitpläne): from a start to an end time, also across midnight, the LEDs are dimmed to a night brightness or switched off; in status mode disk and network LEDs follow, and dark LEDs don't blink
@@ -126,8 +132,9 @@ log "Installing ${VERSION} on kernel ${KERNEL}"
 # Hardware access: /dev/i2c-N, no kernel module.
 #
 
-# A status daemon of the previous version must not keep writing during the update.
+# The status daemon and an effect of the previous version must not keep writing during the update.
 if [ -x "${PLUGIN_DIR}/backend/ugreen-led-ctl" ]; then
+    "${PLUGIN_DIR}/backend/ugreen-led-ctl" fx stop >/dev/null 2>&1
     "${PLUGIN_DIR}/backend/ugreen-led-ctl" daemon stop >/dev/null 2>&1
 fi
 
@@ -166,6 +173,11 @@ if "${PLUGIN_DIR}/backend/ugreen-led-i2c" probe >/dev/null 2>&1; then
 
     # Night mode right away; afterwards cron checks it every minute.
     "${PLUGIN_DIR}/backend/ugreen-led-ctl" schedule --force
+
+    # Rainbow/temperature effect, if one was chosen.
+    if grep -q '^fx_name="[a-z]' "${BOOT_DIR}/leds.cfg" 2>/dev/null; then
+        "${PLUGIN_DIR}/backend/ugreen-led-ctl" fx start 2>&1 | sed 's/^/[UGREEN LED Control] /'
+    fi
 else
     log "WARNING: The LED controller does not answer on the SMBus; no LEDs available."
 fi
@@ -212,6 +224,7 @@ log() {
 }
 
 if [ -x "${PLUGIN_DIR}/backend/ugreen-led-ctl" ]; then
+    "${PLUGIN_DIR}/backend/ugreen-led-ctl" fx stop >/dev/null 2>&1
     "${PLUGIN_DIR}/backend/ugreen-led-ctl" daemon stop >/dev/null 2>&1
 fi
 

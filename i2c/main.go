@@ -13,6 +13,7 @@ const usage = `Usage:
   ugreen-led-i2c [--bus /dev/i2c-N] [--force] probe
   ugreen-led-i2c [--bus /dev/i2c-N] [--force] [--plain] get <led[,led...]|all>
   ugreen-led-i2c [--bus /dev/i2c-N] [--force] set <led[,led...]|all> <command>
+  ugreen-led-i2c [--speed 0-4] [--reverse] [--idle-only] effect <rainbow|temperature> <led[,led...]|all>
 
 LEDs:     power, netdev, disk1 ... disk8
 Commands: color <R> <G> <B> | brightness <0-255> | on | off
@@ -22,6 +23,11 @@ Commands: color <R> <G> <B> | brightness <0-255> | on | off
 --force   use the address even while a kernel driver (led_ugreen) holds it
 --plain   get prints one line per LED for shell scripts:
           <name> <mode> <brightness> <R> <G> <B> <on_ms> <off_ms>
+
+effect runs until SIGTERM: rainbow moves a colour wave over the LEDs
+(--speed, --reverse), temperature colours them by the CPU temperature
+(blue 35 °C, green 45 °C, yellow 55 °C, red 65 °C). --idle-only pauses it
+while any disk is busy.
 `
 
 func main() {
@@ -44,6 +50,9 @@ func run(args []string) int {
 	busPath := flags.String("bus", "", "")
 	force := flags.Bool("force", false, "")
 	plain := flags.Bool("plain", false, "")
+	speed := flags.Int("speed", 2, "")
+	reverse := flags.Bool("reverse", false, "")
+	idleOnly := flags.Bool("idle-only", false, "")
 
 	if err := flags.Parse(args); err != nil {
 		return 2
@@ -53,6 +62,28 @@ func run(args []string) int {
 	if len(args) == 0 || (args[0] != "probe" && len(args) < 2) {
 		fmt.Fprint(os.Stderr, usage)
 		return 2
+	}
+
+	if args[0] == "effect" {
+		if len(args) != 3 {
+			fmt.Fprint(os.Stderr, usage)
+			return 2
+		}
+		leds, err := parseLeds(args[2])
+		if err != nil {
+			return fail(err)
+		}
+		options := effectOptions{
+			name: args[1], leds: leds, speed: *speed, reverse: *reverse,
+			idleOnly: *idleOnly, busPath: *busPath, force: *force,
+		}
+		if err := validateEffect(options); err != nil {
+			return fail(err)
+		}
+		if err := runEffect(options); err != nil {
+			return fail(err)
+		}
+		return 0
 	}
 
 	var leds []string

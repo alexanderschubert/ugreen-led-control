@@ -792,7 +792,6 @@
 .ulc-palette {
     display: flex;
     gap: 6px;
-    opacity: .55;
 }
 
 .ulc-palette span {
@@ -957,6 +956,22 @@
     animation: ulc-breath var(--speed) ease-in-out infinite;
 }
 
+/* Rainbow is painted by software; the preview turns a red LED round the colour wheel. */
+.ulc-led.fx-rainbow {
+    --c: #ff2a2a;
+    background: #ff2a2a;
+    animation: ulc-rainbow var(--rainbow) linear infinite;
+}
+
+@keyframes ulc-rainbow {
+    from { filter: hue-rotate(0deg); }
+    to { filter: hue-rotate(360deg); }
+}
+
+.ulc-led.fx-rainbow.reverse {
+    animation-direction: reverse;
+}
+
 .ulc-led.fx-blink {
     animation: ulc-blink var(--speed) steps(1, end) infinite;
 }
@@ -973,7 +988,8 @@
 
 @media (prefers-reduced-motion: reduce) {
     .ulc-led.fx-breath,
-    .ulc-led.fx-blink {
+    .ulc-led.fx-blink,
+    .ulc-led.fx-rainbow {
         animation: none;
     }
 }

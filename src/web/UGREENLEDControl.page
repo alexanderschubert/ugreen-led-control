@@ -173,25 +173,25 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
                     </div>
 
                     <label for="ulc-direction">Richtung</label>
-                    <select id="ulc-direction" disabled>
-                        <option>Vorwärts</option>
-                        <option>Rückwärts</option>
+                    <select id="ulc-direction">
+                        <option value="forward">Vorwärts</option>
+                        <option value="backward">Rückwärts</option>
                     </select>
 
-                    <label>Farben</label>
+                    <label>Regenbogen</label>
                     <div class="ulc-palette" aria-hidden="true">
                         <span style="--c:#ff3b30"></span><span style="--c:#ff9500"></span><span style="--c:#ffd60a"></span><span style="--c:#34c759"></span><span style="--c:#32d4f5"></span><span style="--c:#0a84ff"></span><span style="--c:#bf5af2"></span>
                     </div>
                 </div>
 
-                <label class="ulc-switch-row ulc-disabled">
+                <label class="ulc-switch-row">
                     <span class="ulc-switch">
-                        <input type="checkbox" disabled>
+                        <input type="checkbox" id="ulc-idle">
                         <span></span>
                     </span>
                     <span>
-                        <strong>Nur im Leerlauf ausführen <em class="ulc-soon">bald</em></strong>
-                        <small>Effekt nur ausführen, wenn keine Laufwerksaktivität.</small>
+                        <strong>Nur im Leerlauf ausführen</strong>
+                        <small>Regenbogen und Temperatur pausieren, solange eine Platte arbeitet.</small>
                     </span>
                 </label>
             </article>

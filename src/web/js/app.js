@@ -63,8 +63,8 @@
         { id: 'static', name: 'Statisch', text: 'Feste Farbe', icon: 'bulb' },
         { id: 'breath', name: 'Atmen', text: 'Sanftes Ein- und Ausblenden', icon: 'wave' },
         { id: 'blink', name: 'Pulsierend', text: 'Gleichmäßiges Blinken', icon: 'activity' },
-        { id: 'rainbow', name: 'Regenbogen', text: 'Automatischer Farbwechsel', icon: 'rainbow', soon: true },
-        { id: 'temperature', name: 'Temperatur', text: 'Farbe nach Systemtemperatur', icon: 'thermo', soon: true },
+        { id: 'rainbow', name: 'Regenbogen', text: 'Automatischer Farbwechsel', icon: 'rainbow', software: true },
+        { id: 'temperature', name: 'Temperatur', text: 'Farbe nach CPU-Temperatur', icon: 'thermo', software: true },
         { id: 'off', name: 'Deaktiviert', text: 'LEDs ausschalten', icon: 'power' }
     ];
 
@@ -91,6 +91,13 @@
                 : [target];
 
     const statusMode = () => state.status.mode === 'status';
+
+    // Rainbow/temperature run as a process on a set of LEDs (status.fx, status.fx_leds).
+    const fxLeds = () => (state.status.fx_leds || '').split(',').filter(Boolean);
+    const fxOn = led => Boolean(state.status.fx) && fxLeds().includes(led);
+
+    // ms per rainbow step (10°) for the speed levels, as in ugreen-led-i2c.
+    const RAINBOW_STEP_MS = [600, 400, 250, 150, 80];
 
     // In status mode the daemon drives disk and network LEDs; only colour and brightness stay manual.
     const managed = led => statusMode() && (led === 'netdev' || led.startsWith('disk'));
@@ -216,6 +223,8 @@
             toast(error.message, 'error');
         }
 
+        // An action may have started or ended a rainbow/temperature effect.
+        await loadStatus();
         await refresh();
     }
 
@@ -371,6 +380,9 @@
         element.classList.toggle('off', !on);
         element.classList.toggle('fx-breath', effect === 'breath');
         element.classList.toggle('fx-blink', effect === 'blink');
+        element.classList.toggle('fx-rainbow', on && fxOn(led) && state.status.fx === 'rainbow');
+        element.classList.toggle('reverse', Boolean(state.status.fx_reverse));
+        element.style.setProperty('--rainbow', `${RAINBOW_STEP_MS[state.status.fx_speed ?? 2] * 36}ms`);
         element.style.setProperty('--c', s.color);
         element.style.setProperty('--level', (s.brightness / 255).toFixed(2));
         element.style.setProperty('--speed', `${speed[0] + speed[1]}ms`);
@@ -468,6 +480,7 @@
 
         if (!s) return null;
         if (s.brightness === 0) return 'off';
+        if (leds.length && leds.every(fxOn)) return state.status.fx;
 
         return s.effect === 'none' ? 'static' : s.effect;
     }
@@ -504,6 +517,8 @@
                         <option value="breath">Atmen</option>
                         <option value="blink">Pulsierend</option>
                         <option value="off">Aus</option>
+                        <option value="rainbow" disabled>Regenbogen</option>
+                        <option value="temperature" disabled>Temperatur</option>
                     </select>
                     <span class="ulc-managed" data-managed hidden title="Im Statusmodus zeigt diese LED Aktivität und Fehler an">Statusmodus</span>
                 </div>
@@ -602,6 +617,11 @@
         const target = q('#ulc-target');
 
         q('#ulc-mode').value = status ? 'status' : 'manual';
+
+        if (document.activeElement !== q('#ulc-direction')) {
+            q('#ulc-direction').value = state.status.fx_reverse ? 'backward' : 'forward';
+        }
+        q('#ulc-idle').checked = Boolean(state.status.fx_idle);
         q('#ulc-mode-hint').hidden = !status;
         qa('[data-status-hint]').forEach(hint => {
             hint.hidden = !status;
@@ -745,8 +765,27 @@
         }
     }
 
+    // Rainbow/temperature: one effect process at a time, with the current settings.
+    function applySoftwareEffect(leds, effect, name) {
+        return run(
+            () => api({
+                action: 'fx',
+                value: effect,
+                led: leds.join(','),
+                speed: state.speed,
+                reverse: q('#ulc-direction').value === 'backward' ? '1' : '0',
+                idle: q('#ulc-idle').checked ? '1' : '0'
+            }, true),
+            `Effekt: ${name}`
+        );
+    }
+
     function applyEffect(leds, effect) {
         const name = EFFECTS.find(e => e.id === effect)?.name || effect;
+
+        if (EFFECTS.find(e => e.id === effect)?.software) {
+            return applySoftwareEffect(leds, effect, name);
+        }
 
         preview(leds, effect === 'off'
             ? { brightness: 0 }
@@ -972,12 +1011,23 @@
             const leds = targetLeds(state.target);
             const effect = currentEffect(leds);
 
-            if (effect === 'breath' || effect === 'blink') {
+            if (['breath', 'blink', 'rainbow'].includes(effect)) {
                 applyEffect(leds, effect);
             } else {
                 render();
             }
         });
+
+        // Direction and idle-only belong to the running rainbow/temperature effect.
+        const reapplySoftwareEffect = () => {
+            const leds = targetLeds(state.target);
+            const effect = currentEffect(leds);
+
+            if (effect === 'rainbow' || effect === 'temperature') applyEffect(leds, effect);
+        };
+
+        q('#ulc-direction').addEventListener('change', reapplySoftwareEffect);
+        q('#ulc-idle').addEventListener('change', reapplySoftwareEffect);
 
         /* Preview */
 
