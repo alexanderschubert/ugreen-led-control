@@ -63,7 +63,7 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
 
 <header class="ulc-head">
     <div>
-        <h1>UGREEN LED Control <span class="ulc-badge" id="ulc-online" data-i18n="head.connecting">Verbinde…</span> <span class="ulc-badge night" id="ulc-night-badge" data-i18n="head.night" hidden>Nachtmodus</span></h1>
+        <h1>UGREEN LED Control <span class="ulc-badge" id="ulc-online" data-i18n="head.connecting">Verbinde…</span> <span class="ulc-badge night" id="ulc-night-badge" data-i18n="head.night" hidden>Nachtmodus</span> <span class="ulc-badge alert" id="ulc-alert-badge" data-i18n="head.alert" hidden>Warnung</span></h1>
         <p data-i18n-html="head.subtitle">Steuerung der LED-Beleuchtung deines <span data-model>UGREEN NAS</span> direkt in Unraid.</p>
     </div>
     <div class="ulc-banner" id="ulc-banner" hidden>
@@ -304,6 +304,36 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
     <article class="ulc-card">
         <h2 data-i18n="system.title">System</h2>
         <dl class="ulc-facts" id="ulc-facts"></dl>
+    </article>
+    <article class="ulc-card">
+        <h2 data-i18n="alerts.title">Unraid-Warnungen</h2>
+        <p class="ulc-muted" data-i18n="alerts.intro">Bei ungelesenen Unraid-Meldungen blinkt die Power-LED. Liest oder archivierst du sie in Unraid, kehrt sie in ihren normalen Zustand zurück. Geprüft wird jede Minute.</p>
+
+        <label class="ulc-switch-row">
+            <span class="ulc-switch">
+                <input type="checkbox" id="ulc-alert-enabled">
+                <span></span>
+            </span>
+            <span>
+                <strong data-i18n="alerts.enable">Warnungen an der Power-LED anzeigen</strong>
+                <small id="ulc-alert-state">—</small>
+            </span>
+        </label>
+
+        <div class="ulc-form">
+            <label for="ulc-alert-level" data-i18n="alerts.level">Anzeigen bei</label>
+            <select id="ulc-alert-level">
+                <option value="warning" data-i18n="alerts.level_warning">Warnungen und Alarmen</option>
+                <option value="alert" data-i18n="alerts.level_alert">Nur Alarmen</option>
+            </select>
+
+            <label data-i18n="alerts.color">Farbe</label>
+            <div id="ulc-alert-color"></div>
+        </div>
+
+        <div class="ulc-actions">
+            <button type="button" class="ulc-btn primary" id="ulc-alert-save"><span class="ulc-ico" data-ulc-icon="check"></span><span data-i18n="common.save">Speichern</span></button>
+        </div>
     </article>
     <article class="ulc-card">
         <h2 data-i18n="language.title">Sprache</h2>

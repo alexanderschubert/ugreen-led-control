@@ -285,6 +285,49 @@ if ($method === 'POST') {
         ]);
     }
 
+    if ($action === 'alerts') {
+        $level = (string)($input['level'] ?? '');
+        $rgb = [];
+
+        foreach (['r', 'g', 'b'] as $channel) {
+            $value = filter_var($input[$channel] ?? null, FILTER_VALIDATE_INT);
+
+            if ($value === false || $value < 0 || $value > 255) {
+                respond([
+                    'ok' => false,
+                    'error' => 'RGB values must be 0-255'
+                ], 400);
+            }
+
+            $rgb[] = $value;
+        }
+
+        if (!in_array($level, ['warning', 'alert'], true)) {
+            respond([
+                'ok' => false,
+                'error' => 'Invalid alert level'
+            ], 400);
+        }
+
+        $saved = save_settings([
+            'alert_enabled' => ($input['enabled'] ?? '') === '1' ? '1' : '0',
+            'alert_level' => $level,
+            'alert_color' => implode(' ', $rgb)
+        ]);
+
+        if (!$saved) {
+            respond([
+                'ok' => false,
+                'error' => CONFIG_FILE . ' is not writable'
+            ], 500);
+        }
+
+        // Show or clear it right away instead of at the next cron minute.
+        run_backend(['alerts', '--force']);
+
+        respond(['ok' => true]);
+    }
+
     if ($action === 'identify') {
         $led = (string)($input['led'] ?? '');
 

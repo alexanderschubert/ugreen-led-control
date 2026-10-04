@@ -17,6 +17,8 @@ SCHEDULE_STATE="${UGREEN_SCHEDULE_STATE:-/var/run/ugreen-led-control.schedule}"
 FX_PIDFILE="${UGREEN_FX_PIDFILE:-/var/run/ugreen-led-control-fx.pid}"
 FX_LOG="${UGREEN_FX_LOG:-/var/run/ugreen-led-control-fx.log}"
 IDENTIFY_PREFIX="${UGREEN_IDENTIFY_PREFIX:-/var/run/ugreen-led-control.identify-}"
+ALERT_STATE="${UGREEN_ALERT_STATE:-/var/run/ugreen-led-control.alert}"
+DYNAMIX_CFG="${UGREEN_DYNAMIX_CFG:-/boot/config/plugins/dynamix/dynamix.cfg}"
 
 DEFAULT_DISK_COLOR="255 160 0"
 DEFAULT_NETDEV_COLOR="0 200 83"
@@ -59,7 +61,8 @@ Usage:
   ugreen-led-ctl apply        (restore the settings saved by the web UI)
   ugreen-led-ctl bays         (which disk sits in which bay)
   ugreen-led-ctl daemon start|stop|restart|status|run
-  ugreen-led-ctl schedule [--force]   (night mode; run every minute by cron)
+  ugreen-led-ctl schedule [--force]   (night mode and Unraid alerts; run every minute by cron)
+  ugreen-led-ctl alerts [--force]     (Unraid alerts on the power LED only)
   ugreen-led-ctl fx start|stop|restart|status   (rainbow/temperature from leds.cfg)
   ugreen-led-ctl identify <diskN> [seconds]      (blink a bay white, default 30 s)
   ugreen-led-ctl identify-stop <diskN>
@@ -216,6 +219,11 @@ status() {
     fi
     printf '  "fx_leds": "%s",\n' "$(config_value fx_leds)"
     printf '  "identify": %s,\n' "$(identifying_leds)"
+    printf '  "alert_enabled": %s,\n' "$([ "$(config_value alert_enabled)" = 1 ] && echo true || echo false)"
+    printf '  "alert_level": "%s",\n' "$(config_value alert_level | grep . || echo warning)"
+    printf '  "alert_color": "%s",\n' "$(config_value alert_color | grep . || echo "$DEFAULT_ERROR_COLOR")"
+    printf '  "alert_count": %s,\n' "$(unread_alerts)"
+    printf '  "alert_active": %s,\n' "$([ "$(cat "$ALERT_STATE" 2>/dev/null)" = alert ] && echo true || echo false)"
     printf '  "fx_speed": %s,\n' "$(config_value fx_speed | grep . || echo 2)"
     printf '  "fx_reverse": %s,\n' "$([ "$(config_value fx_reverse)" = 1 ] && echo true || echo false)"
     printf '  "fx_idle": %s,\n' "$([ "$(config_value fx_idle)" = 1 ] && echo true || echo false)"
@@ -318,13 +326,33 @@ config_value() {
     sed -n "s/^$1=\"\(.*\)\"\$/\1/p" "$CONFIG" 2>/dev/null | tail -n 1
 }
 
-apply_config() {
-    local led
+# Saved colour, brightness and effect of one LED.
+apply_led() {
+    local led="$1"
     local color
     local brightness
     local effect
-    local on_ms
-    local off_ms
+
+    color="$(config_value "${led}_color")"
+    brightness="$(config_value "${led}_brightness")"
+    effect="$(config_value "${led}_effect")"
+
+    # shellcheck disable=SC2086 # "R G B" is meant to split into three arguments
+    [ -n "$color" ] && set_color "$led" $color
+    [ -n "$brightness" ] && set_brightness "$led" "$brightness"
+
+    # An effect would light an LED that is meant to be off.
+    [ "${brightness:-1}" = "0" ] && return 0
+
+    case "$effect" in
+        blink) set_effect blink "$led" "$(config_value "${led}_on" | grep . || echo 450)" "$(config_value "${led}_off" | grep . || echo 450)" ;;
+        breath) set_effect breath "$led" "$(config_value "${led}_on" | grep . || echo 1200)" "$(config_value "${led}_off" | grep . || echo 900)" ;;
+        none) stop_effect "$led" ;;
+    esac
+}
+
+apply_config() {
+    local led
 
     if [ ! -f "$CONFIG" ]; then
         echo "No saved settings ($CONFIG)."
@@ -332,24 +360,7 @@ apply_config() {
     fi
 
     for led in $(supported_leds); do
-        color="$(config_value "${led}_color")"
-        brightness="$(config_value "${led}_brightness")"
-        effect="$(config_value "${led}_effect")"
-        on_ms="$(config_value "${led}_on")"
-        off_ms="$(config_value "${led}_off")"
-
-        # shellcheck disable=SC2086 # "R G B" is meant to split into three arguments
-        [ -n "$color" ] && set_color "$led" $color
-        [ -n "$brightness" ] && set_brightness "$led" "$brightness"
-
-        # An effect would light an LED that is meant to be off.
-        [ "${brightness:-1}" = "0" ] && continue
-
-        case "$effect" in
-            blink) set_effect blink "$led" "${on_ms:-450}" "${off_ms:-450}" ;;
-            breath) set_effect breath "$led" "${on_ms:-1200}" "${off_ms:-900}" ;;
-            none) stop_effect "$led" ;;
-        esac
+        apply_led "$led"
     done
 
     echo "Saved settings applied."
@@ -428,7 +439,7 @@ schedule_tick() {
     local leds
 
     is_night && wanted="night"
-    [ "$force" != "--force" ] && [ "$(cat "$SCHEDULE_STATE" 2>/dev/null)" = "$wanted" ] && return 0
+    [ "$force" != "--force" ] && [ "$(cat "$SCHEDULE_STATE" 2>/dev/null)" = "$wanted" ] && return 1
     echo "$wanted" > "$SCHEDULE_STATE"
 
     if daemon_running; then
@@ -444,6 +455,88 @@ schedule_tick() {
     [ "$wanted" = "night" ] && apply_night $leds
 
     log "night mode: $wanted"
+}
+
+# ============================================================
+# Unraid alerts on the power LED
+# ============================================================
+
+# alert_enabled="1", alert_level "warning" (warnings and alerts) or "alert",
+# alert_color "R G B". Unraid keeps unread notifications as *.notify files.
+notify_dir() {
+    local dir
+
+    dir="$(awk -F'"' '/^\[/ { section = $0 } section == "[notify]" && /^path=/ { print $2; exit }' "$DYNAMIX_CFG" 2>/dev/null)"
+    echo "${UGREEN_NOTIFY_DIR:-${dir:-/tmp/notifications}}"
+}
+
+unread_alerts() {
+    local level
+    local file
+    local importance
+    local count=0
+
+    level="$(config_value alert_level | grep . || echo warning)"
+
+    for file in "$(notify_dir)"/unread/*.notify; do
+        [ -e "$file" ] || continue
+        importance="$(sed -n 's/^importance="\{0,1\}\([a-z]*\)"\{0,1\}$/\1/p' "$file" | head -n 1)"
+        case "$importance" in
+            alert) count=$((count + 1)) ;;
+            warning) [ "$level" = "warning" ] && count=$((count + 1)) ;;
+        esac
+    done
+
+    echo "$count"
+}
+
+# Power LED back to normal: saved look, night mode, and its effect if any.
+restore_power() {
+    apply_led power >/dev/null 2>&1
+    is_night && apply_night power
+
+    case ",$(config_value fx_leds)," in
+        *,power,*) [ -n "$(config_value fx_name)" ] && ! fx_running && fx_start >/dev/null 2>&1 ;;
+    esac
+    return 0
+}
+
+# While alerts are unread the power LED blinks in the alert colour; it is
+# written every minute, so other writes (mode switch, night mode) can't hide it.
+alert_tick() {
+    local force="${1:-}"
+    local count=0
+    local last
+    local brightness
+    local night=0
+
+    [ "$(config_value alert_enabled)" = "1" ] && count="$(unread_alerts)"
+    last="$(cat "$ALERT_STATE" 2>/dev/null)"
+
+    if [ "$count" -gt 0 ]; then
+        echo "alert" > "$ALERT_STATE"
+
+        # A rainbow/temperature effect on the power LED would paint over it.
+        case ",$(config_value fx_leds)," in
+            *,power,*) fx_running && fx_stop ;;
+        esac
+
+        is_night && night=1
+        brightness="$(effective_brightness "$(saved_brightness power)" "$night")"
+        if [ "$brightness" -eq 0 ]; then
+            tool set power off >/dev/null 2>&1
+        else
+            # shellcheck disable=SC2046
+            tool set power color $(config_value alert_color | grep . || echo "$DEFAULT_ERROR_COLOR") >/dev/null 2>&1
+            tool set power brightness "$brightness" >/dev/null 2>&1
+            tool set power blink 500 500 >/dev/null 2>&1
+        fi
+
+        [ "$last" = "alert" ] || log "Unraid alert: power LED signals $count unread notification(s)"
+    elif [ "$last" = "alert" ] || [ "$force" = "--force" ]; then
+        echo "none" > "$ALERT_STATE"
+        [ "$last" = "alert" ] && restore_power && log "Unraid alerts read: power LED back to normal"
+    fi
 }
 
 # ============================================================
@@ -948,7 +1041,8 @@ case "${1:-help}" in
     apply) apply_config ;;
     bays) bays_json ;;
     daemon) daemon_command "${2:-status}" ;;
-    schedule) schedule_tick "${2:-}" ;;
+    schedule) schedule_tick "${2:-}"; alert_tick ;;
+    alerts) alert_tick "${2:-}" ;;
     fx) fx_command "${2:-status}" ;;
     identify) [ $# -ge 2 ] || { echo "Usage: $0 identify <diskN> [seconds]" >&2; exit 2; }; identify_start "$2" "${3:-30}" ;;
     identify-stop) [ $# -ge 2 ] || { echo "Usage: $0 identify-stop <diskN>" >&2; exit 2; }; identify_stop "$2" "${3:-}" ;;

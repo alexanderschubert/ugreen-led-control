@@ -263,6 +263,7 @@
             renderStatus(true);
             renderMode();
             renderNight();
+            renderAlerts();
             await loadBays();
         } catch (error) {
             renderStatus(false, error.message);
@@ -709,6 +710,49 @@
         if (!stop) state.identifyTimer = setTimeout(loadStatus, 31000);
     }
 
+    /* Unraid alerts */
+
+    function renderAlerts() {
+        const status = state.status;
+        const card = q('#ulc-alert-save').closest('.ulc-card');
+
+        q('#ulc-alert-badge').hidden = !status.alert_active;
+
+        q('#ulc-alert-state').textContent = !status.alert_enabled
+            ? t('alerts.state_off')
+            : status.alert_count > 0
+                ? t('alerts.state_active', { n: status.alert_count })
+                : t('alerts.state_none');
+
+        if (card.contains(document.activeElement)) return;
+
+        q('#ulc-alert-enabled').checked = Boolean(status.alert_enabled);
+        q('#ulc-alert-level').value = status.alert_level || 'warning';
+
+        const color = q('#ulc-alert-color');
+        if (!color.firstElementChild) color.innerHTML = colorInput('#ff3b30');
+        setColorInput(color, rgbToHex(status.alert_color || '255 59 48'));
+    }
+
+    function saveAlerts() {
+        const hex = normalizeHex(q('#ulc-alert-color input[type="text"]').value);
+
+        if (!hex) {
+            toast(t('colors.invalid'), 'error');
+            return;
+        }
+
+        return run(
+            () => api({
+                action: 'alerts',
+                enabled: q('#ulc-alert-enabled').checked ? '1' : '0',
+                level: q('#ulc-alert-level').value,
+                ...hexToRgb(hex)
+            }, true),
+            t('alerts.saved')
+        );
+    }
+
     async function setMode(mode) {
         await run(
             () => api({ action: 'mode', value: mode }, true),
@@ -960,6 +1004,10 @@
         });
 
         q('#ulc-mode').addEventListener('change', event => setMode(event.target.value));
+
+        // The alert colour is only saved with the button, not on every pick.
+        bindColorInputs(q('#ulc-alert-color'), () => {});
+        q('#ulc-alert-save').addEventListener('click', saveAlerts);
 
         q('#ulc-bays').addEventListener('click', event => {
             const button = event.target.closest('[data-identify]');
