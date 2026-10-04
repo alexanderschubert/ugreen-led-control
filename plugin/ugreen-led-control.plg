@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.12.0">
+<!ENTITY version   "0.13.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,11 @@
 >
 
 <CHANGES>
+
+### 0.13.0
+- Drive LEDs can show each disk's temperature (blue → green → yellow at Unraid's "hot" → red at "critical"; disk-specific limits and SSD limits respected)
+- SMART warnings: a bay lights up in a warning colour when reallocated, pending or uncorrectable sectors grow, a SMART value fails, or Unraid counts read/write errors; "Quittieren" accepts the current values
+- Fix: short status badges on the bay cards no longer turn into circles
 
 ### 0.12.0
 - Status mode shows parity checks and rebuilds: array disks breathe in their own colour (disks with errors keep the error colour); the Laufwerke page shows the progress

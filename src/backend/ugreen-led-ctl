@@ -11,6 +11,7 @@ LED_TOOL="${UGREEN_LED_I2C:-$HERE/ugreen-led-i2c}"
 CONFIG="${UGREEN_LED_CONFIG:-/boot/config/plugins/ugreen-led-control/leds.cfg}"
 DISKS_INI="${UGREEN_DISKS_INI:-/var/local/emhttp/disks.ini}"
 VAR_INI="${UGREEN_VAR_INI:-/var/local/emhttp/var.ini}"
+SMART_DIR="${UGREEN_SMART_DIR:-/var/local/emhttp/smart}"
 SYS_BLOCK="${UGREEN_SYS_BLOCK:-/sys/block}"
 SYS_NET="${UGREEN_SYS_NET:-/sys/class/net}"
 PIDFILE="${UGREEN_PIDFILE:-/var/run/ugreen-led-control.pid}"
@@ -25,6 +26,7 @@ DEFAULT_DISK_COLOR="255 160 0"
 DEFAULT_NETDEV_COLOR="0 200 83"
 DEFAULT_ERROR_COLOR="255 59 48"
 DEFAULT_SYNC_COLOR="0 120 255"
+DEFAULT_SMART_COLOR="255 140 0"
 
 # Hardware blink while a disk or the network is busy.
 ACTIVITY_ON_MS=100
@@ -229,6 +231,9 @@ status() {
     printf '  "sync_color": "%s",\n' "$(config_value sync_color | grep . || echo "$DEFAULT_SYNC_COLOR")"
     printf '  "standby_mode": "%s",\n' "$(config_value standby_mode | grep . || echo dim)"
     printf '  "standby_level": %s,\n' "$(config_value standby_level | grep . || echo 30)"
+    printf '  "smart_enabled": %s,\n' "$([ "$(config_value smart_enabled)" = 0 ] && echo false || echo true)"
+    printf '  "smart_color": "%s",\n' "$(config_value smart_color | grep . || echo "$DEFAULT_SMART_COLOR")"
+    printf '  "disk_color_mode": "%s",\n' "$(config_value disk_color_mode | grep . || echo own)"
     printf '  "alert_enabled": %s,\n' "$([ "$(config_value alert_enabled)" = 1 ] && echo true || echo false)"
     printf '  "alert_level": "%s",\n' "$(config_value alert_level | grep . || echo warning)"
     printf '  "alert_color": "%s",\n' "$(config_value alert_color | grep . || echo "$DEFAULT_ERROR_COLOR")"
@@ -589,18 +594,25 @@ bay_device() {
     done
 }
 
-# Unraid's view of a device: "<slot> <status> <spundown 0|1> <temp|-> <errors>",
-# e.g. "disk2 DISK_OK 1 - 0". The fields are spread over the whole section.
+# Unraid's view of a device, spread over its whole disks.ini section:
+# "<slot> <status> <spundown 0|1> <temp|-> <errors> <rotational 0|1> <warning|-> <critical|-> <id>",
+# e.g. "disk2 DISK_OK 1 - 0 1 - - ST4000VN006-3CW104_ZW628KBL".
 unraid_disk() {
     awk -F'"' -v dev="$1" '
+        function dash(value) { return value == "" ? "-" : value }
         function out() {
             if (device == dev && name != "") {
-                print name, status, (spundown == "" ? 0 : spundown), (temp ~ /^[0-9]+$/ ? temp : "-"), (errors == "" ? 0 : errors)
+                print name, status, (spundown == "" ? 0 : spundown), (temp ~ /^[0-9]+$/ ? temp : "-"), (errors == "" ? 0 : errors), \
+                    (rotational == "" ? 1 : rotational), (warning ~ /^[0-9]+$/ ? warning : "-"), (critical ~ /^[0-9]+$/ ? critical : "-"), dash(id)
                 found = 1
                 exit
             }
         }
-        /^\[/ { out(); name = device = status = spundown = temp = errors = "" }
+        /^\[/ { out(); name = device = status = spundown = temp = errors = rotational = warning = critical = id = "" }
+        /^rotational=/ { rotational = $2 }
+        /^warning=/ { warning = $2 }
+        /^critical=/ { critical = $2 }
+        /^id=/ { id = $2 }
         /^name=/ { name = $2 }
         /^device=/ { device = $2 }
         /^status=/ { status = $2 }
@@ -620,6 +632,100 @@ sync_state() {
         /^mdResyncAction=/ { split($2, words, " "); action = words[1] }
         END { if (resync != "" && resync != "0") print action, (size > 0 ? int(pos * 100 / size) : 0) }
     ' "$VAR_INI" 2>/dev/null
+}
+
+# Unraid's temperature limits for a disk: its own warning/critical, or the global
+# hot/max (hotssd/maxssd for SSDs) from dynamix.cfg. Prints "<hot> <max>".
+temp_limits() {
+    local rotational="$1"
+    local warning="$2"
+    local critical="$3"
+    local hot_key="hot"
+    local max_key="max"
+    local hot
+    local max
+
+    [ "$rotational" = "0" ] && { hot_key="hotssd"; max_key="maxssd"; }
+    hot="$(sed -n "s/^$hot_key=\"\([0-9]*\)\"$/\1/p" "$DYNAMIX_CFG" 2>/dev/null | head -n 1)"
+    max="$(sed -n "s/^$max_key=\"\([0-9]*\)\"$/\1/p" "$DYNAMIX_CFG" 2>/dev/null | head -n 1)"
+    [ "$rotational" = "0" ] && { hot="${hot:-60}"; max="${max:-70}"; }
+
+    [ "$warning" != "-" ] && hot="$warning"
+    [ "$critical" != "-" ] && max="$critical"
+
+    echo "${hot:-45} ${max:-55}"
+}
+
+# Colour for a disk temperature: blue at hot-15, green at hot-7, yellow at hot, red at max.
+temp_color() {
+    local temp="$1"
+    local hot="$2"
+    local max="$3"
+    local -a stops
+    local i lo hi t span
+
+    stops=("$((hot - 15)) 0 120 255" "$((hot - 7)) 0 200 83" "$hot 255 200 0" "$max 255 40 40")
+
+    # shellcheck disable=SC2086
+    set -- ${stops[0]}
+    [ "$temp" -le "$1" ] && { echo "$2 $3 $4"; return; }
+
+    for i in 1 2 3; do
+        # shellcheck disable=SC2086
+        set -- ${stops[i - 1]} ${stops[i]}
+        lo="$1"
+        hi="$5"
+        if [ "$temp" -le "$hi" ]; then
+            span=$((hi - lo))
+            [ "$span" -lt 1 ] && span=1
+            t=$((temp - lo))
+            echo "$(( $2 + ($6 - $2) * t / span )) $(( $3 + ($7 - $3) * t / span )) $(( $4 + ($8 - $4) * t / span ))"
+            return
+        fi
+    done
+
+    echo "255 40 40"
+}
+
+# The watched SMART values from Unraid's cached smartctl output, plus Unraid's
+# read/write error count: "5=0 187=0 197=0 198=0 failed=0 errors=0".
+# 188 (Command_Timeout) is left out: Seagate reports raw values like "0 0 0".
+smart_now() {
+    local slot="$1"
+    local errors="$2"
+
+    awk -v errors="$errors" '
+        $1 ~ /^(5|187|197|198)$/ { split($10, raw, "/"); value[$1] = raw[1] + 0; if ($9 != "-") failed = 1 }
+        $1 ~ /^[0-9]+$/ && $9 != "-" && $9 != "" { failed = 1 }
+        END {
+            printf "5=%d 187=%d 197=%d 198=%d failed=%d errors=%d\n", value[5], value[187], value[197], value[198], failed, errors
+        }
+    ' "$SMART_DIR/$slot" 2>/dev/null || echo "5=0 187=0 197=0 198=0 failed=0 errors=$errors"
+}
+
+# Config key for a disk's acknowledged SMART values, from its Unraid id.
+smart_key() {
+    echo "smart_ack_$(printf '%s' "$1" | tr -c 'A-Za-z0-9' '_')"
+}
+
+# Values that rose above what was acknowledged ("5=8 errors=2"), empty if none.
+smart_warnings() {
+    local now="$1"
+    local ack="$2"
+    local pair
+    local name
+    local value
+    local acked
+    local out=""
+
+    for pair in $now; do
+        name="${pair%%=*}"
+        value="${pair#*=}"
+        acked="$(printf '%s\n' $ack | sed -n "s/^$name=//p")"
+        [ "$value" -gt "${acked:-0}" ] && out="$out $pair"
+    done
+
+    echo "${out# }"
 }
 
 # Brightness of a spun-down disk: standby_mode normal|dim|off, standby_level in %.
@@ -655,6 +761,10 @@ bays_json() {
     local spundown
     local temp
     local errors
+    local limits="45 55"
+    local now=""
+    local key=""
+    local warnings=""
     local first=1
 
     printf '['
@@ -666,6 +776,10 @@ bays_json() {
         spundown=0
         temp="-"
         errors=0
+        limits="45 55"
+        now=""
+        key=""
+        warnings=""
 
         if [ -n "$dev" ]; then
             serial="$(disk_serial "$dev")"
@@ -676,14 +790,21 @@ bays_json() {
             spundown="${3:-0}"
             temp="${4:--}"
             errors="${5:-0}"
+            limits="$(temp_limits "${6:-1}" "${7:--}" "${8:--}")"
+            if [ -n "$slot" ]; then
+                now="$(smart_now "$slot" "$errors")"
+                key="$(smart_key "${9:--}")"
+                warnings="$(smart_warnings "$now" "$(config_value "$key")")"
+            fi
         fi
 
         [ "$first" -eq 1 ] || printf ','
-        printf '{"bay":%s,"led":"disk%s","device":"%s","serial":"%s","slot":"%s","status":"%s","error":%s,"standby":%s,"temp":%s,"errors":%s}' \
+        printf '{"bay":%s,"led":"disk%s","device":"%s","serial":"%s","slot":"%s","status":"%s","error":%s,"standby":%s,"temp":%s,"errors":%s,"temp_hot":%s,"temp_max":%s,"smart_now":"%s","smart_key":"%s","smart_warnings":"%s"}' \
             "$bay" "$bay" "$dev" "$serial" "$slot" "$disk_status" \
             "$(is_error_status "$disk_status" && echo true || echo false)" \
             "$([ "$spundown" = 1 ] && echo true || echo false)" \
-            "$([ "$temp" = "-" ] && echo null || echo "$temp")" "$errors"
+            "$([ "$temp" = "-" ] && echo null || echo "$temp")" "$errors" \
+            "${limits% *}" "${limits#* }" "$now" "$key" "$warnings"
         first=0
     done
     printf ']\n'
@@ -766,6 +887,9 @@ daemon_run() {
     local brightness
     local sync
     local sync_color
+    local smart_on
+    local smart_color
+    local temp_mode
     local -a devices=()
     local -a applied=()
     local -a counters=()
@@ -795,6 +919,9 @@ daemon_run() {
             sync=""
             [ "$(config_value sync_enabled)" != "0" ] && sync="$(sync_state)"
             sync_color="$(config_value sync_color | grep . || echo "$DEFAULT_SYNC_COLOR")"
+            smart_on="$(config_value smart_enabled | grep . || echo 1)"
+            smart_color="$(config_value smart_color | grep . || echo "$DEFAULT_SMART_COLOR")"
+            temp_mode="$(config_value disk_color_mode | grep . || echo own)"
 
             # Every 30 s everything is written again, which also undoes manual writes (Test, effects).
             if [ $((tick % 150)) -eq 0 ]; then
@@ -821,12 +948,19 @@ daemon_run() {
                     [ "${3:-0}" = "1" ] && brightness="$(standby_brightness "$brightness")"
                 fi
 
+                # Error > SMART warning > parity check > temperature or own colour.
                 if [ -z "$dev" ] || [ "$brightness" -eq 0 ]; then
                     wanted="off"
                 elif is_error_status "${2:-}"; then
                     wanted="steady|$error_color|$brightness"
+                elif [ "$smart_on" = "1" ] && [ -n "${1:-}" ] \
+                    && [ -n "$(smart_warnings "$(smart_now "$1" "${5:-0}")" "$(config_value "$(smart_key "${9:--}")")")" ]; then
+                    wanted="steady|$smart_color|$brightness"
                 elif [ -n "$sync" ] && [ -n "${1:-}" ]; then
                     wanted="breath|$sync_color|$brightness"
+                elif [ "$temp_mode" = "temperature" ] && [ "${4:--}" != "-" ]; then
+                    # shellcheck disable=SC2046
+                    wanted="steady|$(temp_color "$4" $(temp_limits "${6:-1}" "${7:--}" "${8:--}"))|$brightness"
                 else
                     wanted="steady|$(saved_color "disk$bay" "$DEFAULT_DISK_COLOR")|$brightness"
                 fi

@@ -682,6 +682,9 @@
                     ${bay.serial ? `<small>${escapeHtml(bay.serial)}</small>` : ''}
                     <span class="ulc-state ${kind}">${escapeHtml(text)}</span>
                     ${bay.device ? `<small>${escapeHtml(bayCondition(bay))}</small>` : ''}
+                    ${bay.smart_warnings ? `
+                        <span class="ulc-state warning">${escapeHtml(t('bays.smart', { list: smartText(bay.smart_warnings) }))}</span>
+                        <button type="button" class="ulc-btn small" data-smart-ack="${escapeHtml(bay.led)}" title="${escapeHtml(t('smart.ack_title'))}">${icon('check')}${escapeHtml(t('smart.ack'))}</button>` : ''}
                     ${identifyButton(bay.led)}
                 </div>`;
         }).join('');
@@ -694,6 +697,21 @@
         const parts = [bay.standby ? t('bays.standby') : bay.temp != null ? `${bay.temp} °C` : ''];
         if (bay.errors > 0) parts.push(t('bays.errors', { n: bay.errors }));
         return parts.filter(Boolean).join(' · ');
+    }
+
+    // "5=8 errors=2" -> "8 umgelagerte Sektoren, 2 Lese-/Schreibfehler"
+    function smartText(warnings) {
+        return warnings.split(' ').map(pair => {
+            const [name, value] = pair.split('=');
+            return t(`smart.${name}`, { n: value });
+        }).join(', ');
+    }
+
+    function ackSmart(led) {
+        return run(
+            () => api({ action: 'smart_ack', led }, true),
+            t('smart.acked', { n: led.slice(4) })
+        );
     }
 
     /* Status display (parity check, standby) */
@@ -717,6 +735,12 @@
         setColorInput(color, rgbToHex(status.sync_color || '0 120 255'));
 
         q('#ulc-standby-mode').value = status.standby_mode || 'dim';
+        q('#ulc-disk-color-mode').value = status.disk_color_mode || 'own';
+        q('#ulc-smart-enabled').checked = status.smart_enabled !== false;
+
+        const smartColor = q('#ulc-smart-color');
+        if (!smartColor.firstElementChild) smartColor.innerHTML = colorInput('#ff8c00');
+        setColorInput(smartColor, rgbToHex(status.smart_color || '255 140 0'));
 
         const level = q('#ulc-standby-level');
         level.value = status.standby_level || 30;
@@ -727,15 +751,23 @@
 
     function saveDisplay() {
         const hex = normalizeHex(q('#ulc-sync-color input[type="text"]').value);
+        const smartHex = normalizeHex(q('#ulc-smart-color input[type="text"]').value);
 
-        if (!hex) {
+        if (!hex || !smartHex) {
             toast(t('colors.invalid'), 'error');
             return;
         }
 
+        const smart = hexToRgb(smartHex);
+
         return run(
             () => api({
                 action: 'status_display',
+                disk_color_mode: q('#ulc-disk-color-mode').value,
+                smart_enabled: q('#ulc-smart-enabled').checked ? '1' : '0',
+                smart_r: smart.r,
+                smart_g: smart.g,
+                smart_b: smart.b,
                 sync_enabled: q('#ulc-sync-enabled').checked ? '1' : '0',
                 standby_mode: q('#ulc-standby-mode').value,
                 standby_level: q('#ulc-standby-level').value,
@@ -1066,6 +1098,7 @@
         // The alert colour is only saved with the button, not on every pick.
         bindColorInputs(q('#ulc-alert-color'), () => {});
         bindColorInputs(q('#ulc-sync-color'), () => {});
+        bindColorInputs(q('#ulc-smart-color'), () => {});
         q('#ulc-display-save').addEventListener('click', saveDisplay);
 
         const standbyLevel = q('#ulc-standby-level');
@@ -1081,6 +1114,9 @@
         q('#ulc-bays').addEventListener('click', event => {
             const button = event.target.closest('[data-identify]');
             if (button) identify(button.dataset.identify);
+
+            const ack = event.target.closest('[data-smart-ack]');
+            if (ack) ackSmart(ack.dataset.smartAck);
         });
 
         const language = q('#ulc-language');

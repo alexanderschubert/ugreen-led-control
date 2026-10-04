@@ -259,7 +259,27 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
             </span>
         </label>
 
+        <label class="ulc-switch-row">
+            <span class="ulc-switch">
+                <input type="checkbox" id="ulc-smart-enabled">
+                <span></span>
+            </span>
+            <span>
+                <strong data-i18n="display.smart">SMART-Warnungen anzeigen</strong>
+                <small data-i18n="display.smart_hint">Ein Schacht leuchtet in der Warnfarbe, wenn umgelagerte, wartende oder nicht korrigierbare Sektoren zunehmen oder Unraid Lese-/Schreibfehler zählt.</small>
+            </span>
+        </label>
+
         <div class="ulc-form">
+            <label for="ulc-disk-color-mode" data-i18n="display.color_mode">Farbe der Laufwerks-LEDs</label>
+            <select id="ulc-disk-color-mode">
+                <option value="own" data-i18n="display.color_own">Eigene Farbe</option>
+                <option value="temperature" data-i18n="display.color_temperature">Nach Plattentemperatur</option>
+            </select>
+
+            <label data-i18n="display.smart_color">Farbe bei SMART-Warnung</label>
+            <div id="ulc-smart-color"></div>
+
             <label data-i18n="display.sync_color">Farbe bei Prüfung</label>
             <div id="ulc-sync-color"></div>
 
