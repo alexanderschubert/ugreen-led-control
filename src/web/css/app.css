@@ -907,7 +907,7 @@
 
 .ulc-bay {
     display: grid;
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto 1fr auto auto;
     justify-items: center;
     gap: 8px;
     aspect-ratio: 1 / 2.15;
@@ -920,6 +920,32 @@
 
 .ulc-bay-no {
     font: 600 clamp(12px, 2.1vw, 26px)/1 "DIN Alternate", "Bahnschrift", "Arial Narrow", sans-serif;
+}
+
+/* Temperature or state between the bay number and the knob. */
+.ulc-bay-info {
+    align-self: center;
+    max-width: 92%;
+    padding: 2px 4px;
+    border-radius: 4px;
+    color: #e5e9ee;
+    font: 600 clamp(9px, 1vw, 16px)/1.15 "DIN Alternate", "Bahnschrift", "Arial Narrow", sans-serif;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.ulc-bay-info.standby {
+    color: var(--ulc-muted);
+}
+
+.ulc-bay-info.warning {
+    background: rgba(255, 140, 0, .18);
+    color: #fdba74;
+}
+
+.ulc-bay-info.error {
+    background: rgba(239, 68, 68, .2);
+    color: #fca5a5;
 }
 
 .ulc-bay-knob {

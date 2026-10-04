@@ -361,6 +361,7 @@
                 disks().map((led, i) => `
                     <div class="ulc-bay">
                         <span class="ulc-bay-no">${String(i + 1).padStart(2, '0')}</span>
+                        <span class="ulc-bay-info" data-bay-info="${led}"></span>
                         <span class="ulc-bay-knob"></span>
                         <span class="ulc-led" data-led="${led}"></span>
                     </div>`).join('') +
@@ -692,6 +693,38 @@
         }).join('');
 
         container.querySelectorAll('.ulc-led[data-led]').forEach(element => paintLed(element, element.dataset.led));
+
+        renderCaseInfo();
+    }
+
+    // Temperature or state in the middle of each bay of the case pictures.
+    function renderCaseInfo() {
+        qa('[data-bay-info]').forEach(element => {
+            const bay = state.bayInfo.find(b => b.led === element.dataset.bayInfo);
+            let text = '';
+            let kind = '';
+
+            if (bay && bay.device) {
+                if (bay.error) {
+                    text = t('case.error');
+                    kind = 'error';
+                } else if (bay.smart_warnings) {
+                    text = 'SMART';
+                    kind = 'warning';
+                } else if (bay.standby) {
+                    text = t('bays.standby');
+                    kind = 'standby';
+                } else {
+                    text = bay.temp != null ? `${bay.temp}°` : 'OK';
+                }
+            }
+
+            element.textContent = text;
+            element.className = `ulc-bay-info ${kind}`;
+            element.title = bay && bay.device
+                ? [t('led.bay', { n: bay.bay }), bay.status ? t(`disk.${bay.status}`) : '', bayCondition(bay)].filter(Boolean).join(' · ')
+                : '';
+        });
     }
 
     // "Standby", "38 °C" and read/write errors, as far as Unraid knows them.
