@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.10.0">
+<!ENTITY version   "0.11.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.11.0
+- Unraid alerts: while Unraid has unread warnings (or only alerts, as chosen), the power LED blinks in the alert colour; once they are read or archived it returns to normal (System page, checked every minute)
 
 ### 0.10.0
 - Identify a bay: "Identifizieren" on the Laufwerke page blinks the bay's LED white for 30 seconds, then restores its previous state; the status daemon leaves it alone meanwhile
