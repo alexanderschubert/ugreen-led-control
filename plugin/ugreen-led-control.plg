@@ -128,7 +128,7 @@ fi
 modprobe i2c-dev
 
 # Versions up to 0.5.1 used the led_ugreen kernel module; it would hold address 0x3a.
-if lsmod | grep -q '^led_ugreen '; then
+if grep -q '^led_ugreen ' /proc/modules; then
     for device in /sys/bus/i2c/devices/*-003a; do
         [ -e "${device}" ] || continue
         echo 0x3a > "$(dirname "$(readlink -f "${device}")")/delete_device"

@@ -16,9 +16,11 @@ fi
 
 # Hardware access goes through /dev/i2c-N; led_ugreen (up to 0.5.1) would hold 0x3a.
 modprobe i2c-dev
-if lsmod | grep -q '^led_ugreen '; then
+if grep -q '^led_ugreen ' /proc/modules; then
     for device in /sys/bus/i2c/devices/*-003a; do
-        [ -e "$device" ] && echo 0x3a > "$(dirname "$(readlink -f "$device")")/delete_device"
+        if [ -e "$device" ]; then
+            echo 0x3a > "$(dirname "$(readlink -f "$device")")/delete_device"
+        fi
     done
     rmmod led_ugreen
 fi
