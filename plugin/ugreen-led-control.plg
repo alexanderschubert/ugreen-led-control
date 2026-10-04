@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.8.0">
+<!ENTITY version   "0.9.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.9.0
+- The interface speaks German and English: System → Sprache / Language, with "Automatic" following Unraid's language
 
 ### 0.8.0
 - Rainbow effect: a colour wave over the chosen LEDs, with speed and direction
@@ -99,6 +102,10 @@
 
 <FILE Name="&srcDIR;/css/app.css">
 <URL>&gitURL;/src/web/css/app.css</URL>
+</FILE>
+
+<FILE Name="&srcDIR;/js/i18n.js">
+<URL>&gitURL;/src/web/js/i18n.js</URL>
 </FILE>
 
 <FILE Name="&srcDIR;/js/app.js">

@@ -222,7 +222,7 @@ status() {
     fi
     printf '  "disk_error_color": "%s",\n' "$(config_value disk_error_color | grep . || echo "$DEFAULT_ERROR_COLOR")"
     printf '  "network_device": "%s",\n' "$(network_device)"
-    printf '  "controller": "ugreen-led-i2c (ohne Kernel-Modul)",\n'
+    printf '  "controller": "ugreen-led-i2c",\n'
     if [ -n "$bus" ]; then
         printf '  "i2c_bus": %s,\n' "$bus"
         printf '  "i2c_address": "0x3a",\n'

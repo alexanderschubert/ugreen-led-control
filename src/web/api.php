@@ -285,6 +285,26 @@ if ($method === 'POST') {
         ]);
     }
 
+    if ($action === 'lang') {
+        $lang = (string)($input['value'] ?? '');
+
+        if (!in_array($lang, ['auto', 'de', 'en'], true)) {
+            respond([
+                'ok' => false,
+                'error' => 'Invalid language'
+            ], 400);
+        }
+
+        if (!save_settings(['ui_lang' => $lang])) {
+            respond([
+                'ok' => false,
+                'error' => CONFIG_FILE . ' is not writable'
+            ], 500);
+        }
+
+        respond(['ok' => true]);
+    }
+
     if ($action === 'fx') {
         $name = (string)($input['value'] ?? '');
 
@@ -309,14 +329,14 @@ if ($method === 'POST') {
         if (!in_array($name, ['rainbow', 'temperature'], true) || $speed === false || $speed < 0 || $speed > 4) {
             respond([
                 'ok' => false,
-                'error' => 'Ungültige Effekt-Werte'
+                'error' => 'Invalid effect values'
             ], 400);
         }
 
         if ((read_settings()['mode'] ?? 'manual') === 'status' && $fxLeds !== ['power']) {
             respond([
                 'ok' => false,
-                'error' => 'Im Statusmodus gelten Effekte nur für die Power-LED'
+                'error' => 'In status mode effects apply to the power LED only'
             ], 400);
         }
 
@@ -355,7 +375,7 @@ if ($method === 'POST') {
         ) {
             respond([
                 'ok' => false,
-                'error' => 'Ungültige Zeitplan-Werte'
+                'error' => 'Invalid schedule values'
             ], 400);
         }
 
@@ -370,7 +390,7 @@ if ($method === 'POST') {
         if (!$saved) {
             respond([
                 'ok' => false,
-                'error' => CONFIG_FILE . ' ist nicht beschreibbar'
+                'error' => CONFIG_FILE . ' is not writable'
             ], 500);
         }
 
@@ -400,7 +420,7 @@ if ($method === 'POST') {
         if (!save_settings(['disk_error_color' => implode(' ', $rgb)])) {
             respond([
                 'ok' => false,
-                'error' => CONFIG_FILE . ' ist nicht beschreibbar'
+                'error' => CONFIG_FILE . ' is not writable'
             ], 500);
         }
 
@@ -584,7 +604,7 @@ if ($method === 'POST') {
     if (!save_config($leds, config_changes($args))) {
         respond([
             'ok' => false,
-            'error' => 'Auf die LEDs geschrieben, aber nicht gespeichert: ' . CONFIG_FILE . ' ist nicht beschreibbar'
+            'error' => 'Written to the LEDs but not saved: ' . CONFIG_FILE . ' is not writable'
         ], 500);
     }
 
