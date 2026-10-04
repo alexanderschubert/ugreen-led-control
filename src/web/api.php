@@ -71,9 +71,19 @@ function save_config(array $leds, array $changes): bool
     // Values are always quoted, so parse_ini_file keeps "none" and "0" as they are.
     $config = is_file(CONFIG_FILE) ? (parse_ini_file(CONFIG_FILE) ?: []) : [];
 
+    // The first save of an LED also records what it shows right now, so a reboot
+    // restores the whole look and not only the attribute that was changed.
+    $current = json_decode(run_backend(['all'])['output'], true) ?: [];
+
     foreach ($leds as $led) {
         foreach ($changes as $key => $value) {
             $config["{$led}_{$key}"] = (string)$value;
+        }
+
+        foreach (['color', 'brightness', 'effect'] as $key) {
+            if (!isset($config["{$led}_{$key}"]) && isset($current[$led][$key])) {
+                $config["{$led}_{$key}"] = (string)$current[$led][$key];
+            }
         }
     }
 
