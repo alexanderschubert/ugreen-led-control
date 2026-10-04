@@ -89,9 +89,8 @@
     stroke-linejoin: round;
 }
 
-.ulc i[data-icon] {
+.ulc-ico {
     display: inline-flex;
-    font-style: normal;
 }
 
 .ulc-muted {

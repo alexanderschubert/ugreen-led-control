@@ -27,7 +27,7 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
 <aside class="ulc-side">
 
     <div class="ulc-brand">
-        <div class="ulc-brand-icon"><i data-icon="nas"></i></div>
+        <div class="ulc-brand-icon"><span class="ulc-ico" data-ulc-icon="nas"></span></div>
         <div>
             <strong>UGREEN LED Control</strong>
             <small data-model>UGREEN NAS</small>
@@ -35,13 +35,13 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
     </div>
 
     <nav class="ulc-nav">
-        <button type="button" class="active" data-nav="overview"><i data-icon="home"></i>Übersicht</button>
-        <button type="button" data-nav="leds"><i data-icon="bulb"></i>LED Einstellungen</button>
-        <button type="button" data-nav="drives"><i data-icon="drives"></i>Laufwerke</button>
-        <button type="button" data-nav="effects"><i data-icon="sparkles"></i>Effekte</button>
-        <button type="button" data-nav="schedules"><i data-icon="clock"></i>Zeitpläne</button>
-        <button type="button" data-nav="system"><i data-icon="gear"></i>System</button>
-        <button type="button" data-nav="about"><i data-icon="info"></i>Über</button>
+        <button type="button" class="active" data-nav="overview"><span class="ulc-ico" data-ulc-icon="home"></span>Übersicht</button>
+        <button type="button" data-nav="leds"><span class="ulc-ico" data-ulc-icon="bulb"></span>LED Einstellungen</button>
+        <button type="button" data-nav="drives"><span class="ulc-ico" data-ulc-icon="drives"></span>Laufwerke</button>
+        <button type="button" data-nav="effects"><span class="ulc-ico" data-ulc-icon="sparkles"></span>Effekte</button>
+        <button type="button" data-nav="schedules"><span class="ulc-ico" data-ulc-icon="clock"></span>Zeitpläne</button>
+        <button type="button" data-nav="system"><span class="ulc-ico" data-ulc-icon="gear"></span>System</button>
+        <button type="button" data-nav="about"><span class="ulc-ico" data-ulc-icon="info"></span>Über</button>
     </nav>
 
 </aside>
@@ -54,7 +54,7 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
         <p>Steuerung der LED-Beleuchtung deines <span data-model>UGREEN NAS</span> direkt in Unraid.</p>
     </div>
     <div class="ulc-banner" id="ulc-banner" hidden>
-        <span class="ulc-banner-icon"><i data-icon="check"></i></span>
+        <span class="ulc-banner-icon"><span class="ulc-ico" data-ulc-icon="check"></span></span>
         <div>
             <strong>NAS verbunden</strong>
             <small><span data-model>UGREEN NAS</span> erkannt</small>
@@ -63,7 +63,7 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
 </header>
 
 <div class="ulc-warning" id="ulc-foreign" hidden>
-    <i data-icon="alert"></i>
+    <span class="ulc-ico" data-ulc-icon="alert"></span>
     <div>
         <strong>Der LED-Monitor von „ugreenleds-driver“ läuft.</strong>
         Er setzt Laufwerks- und Netzwerk-LED laufend auf seine eigenen Farben zurück.
@@ -93,7 +93,7 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
             </label>
 
             <div class="ulc-slider-row">
-                <i data-icon="sun"></i>
+                <span class="ulc-ico" data-ulc-icon="sun"></span>
                 <div>
                     <span>Helligkeit (gesamt)</span>
                     <input type="range" id="ulc-brightness" min="0" max="100" step="1" value="80">
@@ -142,8 +142,8 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
                 <div class="ulc-nas" data-nas></div>
             </div>
             <div class="ulc-actions">
-                <button type="button" class="ulc-btn primary" id="ulc-test"><i data-icon="play"></i>Testen</button>
-                <button type="button" class="ulc-btn" id="ulc-reset"><i data-icon="refresh"></i>Auf Standard zurücksetzen</button>
+                <button type="button" class="ulc-btn primary" id="ulc-test"><span class="ulc-ico" data-ulc-icon="play"></span>Testen</button>
+                <button type="button" class="ulc-btn" id="ulc-reset"><span class="ulc-ico" data-ulc-icon="refresh"></span>Auf Standard zurücksetzen</button>
             </div>
         </article>
 

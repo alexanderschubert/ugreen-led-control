@@ -668,8 +668,8 @@
     }
 
     function bindEvents() {
-        qa('i[data-icon]').forEach(element => {
-            element.innerHTML = icon(element.dataset.icon);
+        qa('[data-ulc-icon]').forEach(element => {
+            element.innerHTML = icon(element.dataset.ulcIcon);
         });
 
         qa('[data-nav]').forEach(button => {
