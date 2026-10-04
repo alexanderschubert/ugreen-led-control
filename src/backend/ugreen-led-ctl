@@ -36,6 +36,7 @@ Usage:
   ugreen-led-ctl status
   ugreen-led-ctl list
   ugreen-led-ctl get <led>
+  ugreen-led-ctl all
   ugreen-led-ctl on <led>
   ugreen-led-ctl off <led>
   ugreen-led-ctl brightness <led> <0-255>
@@ -145,11 +146,37 @@ get_status() {
     printf '}\n'
 }
 
+# ich777's ugreenleds-driver monitor rewrites the disk and netdev LEDs.
+foreign_monitor_running() {
+    pgrep -f '^/bin/bash /usr/bin/ugreen-leds' >/dev/null 2>&1
+}
+
+all_leds() {
+    local first=1
+    local led
+
+    printf '{\n'
+    for led in $(supported_leds); do
+        valid_led "$led" || continue
+        [ "$first" -eq 1 ] || printf ',\n'
+        printf '"%s": ' "$led"
+        get_status "$led"
+        first=0
+    done
+    printf '}\n'
+}
+
 status() {
     printf '{\n'
     printf '  "ok": true,\n'
+    if foreign_monitor_running; then
+        printf '  "foreign_monitor": true,\n'
+    else
+        printf '  "foreign_monitor": false,\n'
+    fi
     printf '  "model": "%s",\n' "$(product_name)"
     printf '  "bays": %s,\n' "$(bay_count)"
+    printf '  "kernel": "%s",\n' "$(uname -r)"
     printf '  "controller": "led_ugreen",\n'
     printf '  "i2c_bus": 0,\n'
     printf '  "i2c_address": "0x3a",\n'
@@ -297,6 +324,10 @@ case "${1:-help}" in
 
     list)
         list_leds
+        ;;
+
+    all)
+        all_leds
         ;;
 
     get)
