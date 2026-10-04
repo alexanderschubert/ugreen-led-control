@@ -322,6 +322,7 @@
         badge.title = error || '';
 
         q('#ulc-banner').hidden = !online;
+        q('#ulc-mapping-hint').hidden = !state.status.mapping || state.status.mapping === 'tested';
         q('#ulc-foreign').hidden = !state.status.foreign_monitor;
 
         qa('[data-model]').forEach(element => {
@@ -333,6 +334,7 @@
         const facts = [
             [t('fact.model'), state.model],
             [t('fact.bays'), state.bays || '—'],
+            [t('fact.mapping'), state.status.mapping ? t(`mapping.${state.status.mapping}`) : '—'],
             [t('fact.control'), state.status.controller ? `${state.status.controller} (${t('fact.no_kernel_module')})` : '—'],
             [t('fact.controller'), state.status.i2c_address
                 ? t('fact.controller_on', { bus: state.status.i2c_bus, address: state.status.i2c_address })

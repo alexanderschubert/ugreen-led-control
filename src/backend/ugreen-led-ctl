@@ -210,6 +210,7 @@ status() {
     printf '  "model": "%s",\n' "$(product_name)"
     printf '  "bays": %s,\n' "$(bay_count)"
     printf '  "kernel": "%s",\n' "$(uname -r)"
+    printf '  "mapping": "%s",\n' "$(mapping_source)"
     printf '  "mode": "%s",\n' "$(config_value mode | grep -x status || echo manual)"
     if daemon_running; then
         printf '  "daemon": true,\n'
@@ -558,10 +559,21 @@ alert_tick() {
 # Status mode: bays, disk activity/health and network
 # ============================================================
 
-# SATA port of each bay, left to right. DXP6800 Pro verified against disk serials.
+# SATA port of each bay, left to right, after miskcoo/ugreen_leds_controller.
+# Only the DXP6800 differs from ata1..ataN in order.
 bay_ports() {
     case "$(product_name)" in
-        "DXP6800 Pro") echo "ata3 ata4 ata5 ata6 ata1 ata2" ;;
+        DXP6800*) echo "ata3 ata4 ata5 ata6 ata1 ata2" ;;
+        *) seq -f 'ata%g' 1 "$(bay_count)" | tr '\n' ' ' ;;
+    esac
+}
+
+# How sure the port table is: tested (here or by miskcoo), reported by users, or guessed.
+mapping_source() {
+    case "$(product_name)" in
+        DXP6800*|DX4600*|DXP8800*) echo tested ;;
+        DX4700*|DXP2800*|DXP4800*) echo reported ;;
+        *) echo guessed ;;
     esac
 }
 

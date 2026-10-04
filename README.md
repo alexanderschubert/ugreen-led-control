@@ -2,6 +2,20 @@
 
 LED control for UGREEN NAS devices on Unraid 7, developed on a DXP6800 Pro.
 
+## Supported models
+
+The LED controller (I2C address 0x3a on the SMBus I801 adapter) is the same across UGREEN's DX/DXP series. Bays are matched to disks by SATA port, after [miskcoo/ugreen_leds_controller](https://github.com/miskcoo/ugreen_leds_controller):
+
+| Model | Bays → SATA ports | Assignment |
+|---|---|---|
+| DXP6800 Pro | ata3, ata4, ata5, ata6, ata1, ata2 | verified (developed on it) |
+| DXP8800 Plus | ata1 … ata8 | verified by miskcoo |
+| DX4600 Pro | ata1 … ata4 | verified by miskcoo |
+| DXP4800 / Plus / Pro, DX4700, DXP2800 | ata1 … ataN | reported by users |
+| other models | ata1 … ataN | guessed |
+
+The System page shows which applies; "Identifizieren / Identify" on the Laufwerke page checks it. Not supported: DXP2800 V1.2 and the GT models, which miskcoo lists as experimental.
+
 ## Install
 
 Unraid → Plugins → Install Plugin:
