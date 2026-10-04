@@ -16,6 +16,7 @@ PIDFILE="${UGREEN_PIDFILE:-/var/run/ugreen-led-control.pid}"
 SCHEDULE_STATE="${UGREEN_SCHEDULE_STATE:-/var/run/ugreen-led-control.schedule}"
 FX_PIDFILE="${UGREEN_FX_PIDFILE:-/var/run/ugreen-led-control-fx.pid}"
 FX_LOG="${UGREEN_FX_LOG:-/var/run/ugreen-led-control-fx.log}"
+IDENTIFY_PREFIX="${UGREEN_IDENTIFY_PREFIX:-/var/run/ugreen-led-control.identify-}"
 
 DEFAULT_DISK_COLOR="255 160 0"
 DEFAULT_NETDEV_COLOR="0 200 83"
@@ -60,6 +61,8 @@ Usage:
   ugreen-led-ctl daemon start|stop|restart|status|run
   ugreen-led-ctl schedule [--force]   (night mode; run every minute by cron)
   ugreen-led-ctl fx start|stop|restart|status   (rainbow/temperature from leds.cfg)
+  ugreen-led-ctl identify <diskN> [seconds]      (blink a bay white, default 30 s)
+  ugreen-led-ctl identify-stop <diskN>
   ugreen-led-ctl on <led>
   ugreen-led-ctl off <led>
   ugreen-led-ctl brightness <led> <0-255>
@@ -212,6 +215,7 @@ status() {
         printf '  "fx": "",\n'
     fi
     printf '  "fx_leds": "%s",\n' "$(config_value fx_leds)"
+    printf '  "identify": %s,\n' "$(identifying_leds)"
     printf '  "fx_speed": %s,\n' "$(config_value fx_speed | grep . || echo 2)"
     printf '  "fx_reverse": %s,\n' "$([ "$(config_value fx_reverse)" = 1 ] && echo true || echo false)"
     printf '  "fx_idle": %s,\n' "$([ "$(config_value fx_idle)" = 1 ] && echo true || echo false)"
@@ -636,6 +640,12 @@ daemon_run() {
                 dev="$(bay_device "$bay")"
                 devices[bay]="$dev"
 
+                # Being identified: hands off; once it ends, the next round writes it again.
+                if [ -e "${IDENTIFY_PREFIX}disk$bay" ]; then
+                    applied[bay]="identify"
+                    continue
+                fi
+
                 brightness="$(effective_brightness "$(saved_brightness "disk$bay")" "$night")"
 
                 if [ -z "$dev" ] || [ "$brightness" -eq 0 ]; then
@@ -689,6 +699,7 @@ daemon_run() {
         for bay in $(seq 1 "$bays"); do
             dev="${devices[bay]:-}"
             [ -n "$dev" ] && [ "${applied[bay]:-}" != "off" ] || continue
+            [ -e "${IDENTIFY_PREFIX}disk$bay" ] && continue
 
             read -r reads _ _ _ writes rest < "$SYS_BLOCK/$dev/stat" 2>/dev/null || continue
 
@@ -843,6 +854,83 @@ fx_command() {
 }
 
 # ============================================================
+# Identify a bay
+# ============================================================
+
+# While "<prefix><led>" exists, the bay blinks white and the status daemon
+# leaves it alone. The file holds a token and the LED's state from before.
+identify_start() {
+    local led="$1"
+    local seconds="${2:-30}"
+    local marker="$IDENTIFY_PREFIX$led"
+    local snapshot
+    local token="$RANDOM$RANDOM"
+
+    case "$led" in
+        disk[1-8]) require_led "$led" || return 1 ;;
+        *) echo "ERROR: Only bay LEDs (disk1..diskN) can be identified." >&2; return 1 ;;
+    esac
+    case "$seconds" in
+        ''|*[!0-9]*) echo "ERROR: Seconds must be a number." >&2; return 1 ;;
+    esac
+
+    # Pressed again while blinking: keep the original state, renew the timer.
+    if [ -f "$marker" ]; then
+        snapshot="$(sed -n 2p "$marker")"
+    else
+        snapshot="$(led_line "$led")" || return 1
+    fi
+    printf '%s\n%s\n' "$token" "$snapshot" > "$marker"
+
+    tool set "$led" color 255 255 255 &&
+        tool set "$led" brightness 255 &&
+        tool set "$led" blink 100 100 || return 1
+
+    setsid bash -c 'sleep "$1"; exec "$2" identify-stop "$3" "$4"' _ \
+        "$seconds" "$(readlink -f "$0")" "$led" "$token" </dev/null >/dev/null 2>&1 &
+
+    echo "Identifying $led for $seconds s."
+}
+
+# Without a token it always stops; the timer passes its token, so an older
+# timer doesn't end a renewed identify early.
+identify_stop() {
+    local led="$1"
+    local token="${2:-}"
+    local marker="$IDENTIFY_PREFIX$led"
+    local name mode brightness r g b on off
+
+    [ -f "$marker" ] || return 0
+    [ -z "$token" ] || [ "$(sed -n 1p "$marker")" = "$token" ] || return 0
+
+    read -r name mode brightness r g b on off < <(sed -n 2p "$marker")
+    rm -f "$marker"
+
+    tool set "$led" color "$r" "$g" "$b" >/dev/null 2>&1
+    tool set "$led" brightness "$brightness" >/dev/null 2>&1
+    case "$mode" in
+        off|on) tool set "$led" "$mode" >/dev/null 2>&1 ;;
+        blink|breath) tool set "$led" "$mode" "$on" "$off" >/dev/null 2>&1 ;;
+    esac
+
+    echo "Stopped identifying $led."
+}
+
+identifying_leds() {
+    local marker
+    local first=1
+
+    printf '['
+    for marker in "$IDENTIFY_PREFIX"disk*; do
+        [ -e "$marker" ] || continue
+        [ "$first" -eq 1 ] || printf ', '
+        printf '"%s"' "${marker#"$IDENTIFY_PREFIX"}"
+        first=0
+    done
+    printf ']'
+}
+
+# ============================================================
 # Commands
 # ============================================================
 
@@ -862,6 +950,8 @@ case "${1:-help}" in
     daemon) daemon_command "${2:-status}" ;;
     schedule) schedule_tick "${2:-}" ;;
     fx) fx_command "${2:-status}" ;;
+    identify) [ $# -ge 2 ] || { echo "Usage: $0 identify <diskN> [seconds]" >&2; exit 2; }; identify_start "$2" "${3:-30}" ;;
+    identify-stop) [ $# -ge 2 ] || { echo "Usage: $0 identify-stop <diskN>" >&2; exit 2; }; identify_stop "$2" "${3:-}" ;;
 
     get) need $# 2 "get <led>"; get_status "$2" ;;
     on) need $# 2 "on <led>"; set_on "$2" ;;

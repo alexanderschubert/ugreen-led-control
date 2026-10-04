@@ -263,7 +263,7 @@
             renderStatus(true);
             renderMode();
             renderNight();
-            loadBays();
+            await loadBays();
         } catch (error) {
             renderStatus(false, error.message);
         }
@@ -679,10 +679,34 @@
                     <small>${bay.device ? `/dev/${escapeHtml(bay.device)}${bay.slot ? ` · ${escapeHtml(bay.slot)}` : ''}` : escapeHtml(t('bays.no_disk'))}</small>
                     ${bay.serial ? `<small>${escapeHtml(bay.serial)}</small>` : ''}
                     <span class="ulc-state ${kind}">${escapeHtml(text)}</span>
+                    ${identifyButton(bay.led)}
                 </div>`;
         }).join('');
 
         container.querySelectorAll('.ulc-led[data-led]').forEach(element => paintLed(element, element.dataset.led));
+    }
+
+    const identifying = led => (state.status.identify || []).includes(led);
+
+    function identifyButton(led) {
+        const active = identifying(led);
+
+        return `<button type="button" class="ulc-btn small ${active ? 'primary' : ''}" data-identify="${escapeHtml(led)}" title="${escapeHtml(t('identify.title'))}">
+            ${icon(active ? 'reset' : 'bulb')}${escapeHtml(t(active ? 'identify.stop' : 'identify.button'))}
+        </button>`;
+    }
+
+    // The LED blinks white for 30 s; afterwards the backend restores it on its own.
+    async function identify(led) {
+        const stop = identifying(led);
+
+        await run(
+            () => api({ action: 'identify', led, value: stop ? 'stop' : 'start' }, true),
+            stop ? t('identify.stopped') : t('identify.started', { n: led.slice(4) })
+        );
+
+        clearTimeout(state.identifyTimer);
+        if (!stop) state.identifyTimer = setTimeout(loadStatus, 31000);
     }
 
     async function setMode(mode) {
@@ -936,6 +960,11 @@
         });
 
         q('#ulc-mode').addEventListener('change', event => setMode(event.target.value));
+
+        q('#ulc-bays').addEventListener('click', event => {
+            const button = event.target.closest('[data-identify]');
+            if (button) identify(button.dataset.identify);
+        });
 
         const language = q('#ulc-language');
         language.value = window.UGREEN_LED_LANG_SETTING || 'auto';

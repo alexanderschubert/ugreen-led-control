@@ -836,6 +836,18 @@
     background: #4189fa;
 }
 
+.ulc .ulc-btn.small {
+    gap: 6px;
+    margin-top: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+.ulc .ulc-btn.small svg {
+    width: 15px;
+    height: 15px;
+}
+
 .ulc .ulc-btn:disabled {
     opacity: .5;
     cursor: default;

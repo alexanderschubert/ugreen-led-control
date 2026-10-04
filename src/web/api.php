@@ -285,6 +285,30 @@ if ($method === 'POST') {
         ]);
     }
 
+    if ($action === 'identify') {
+        $led = (string)($input['led'] ?? '');
+
+        if (!preg_match('/^disk[1-8]$/', $led)) {
+            respond([
+                'ok' => false,
+                'error' => 'Invalid LED'
+            ], 400);
+        }
+
+        $result = run_backend(($input['value'] ?? '') === 'stop'
+            ? ['identify-stop', $led]
+            : ['identify', $led, '30']);
+
+        if ($result['code'] !== 0) {
+            respond([
+                'ok' => false,
+                'error' => $result['output']
+            ], 500);
+        }
+
+        respond(['ok' => true]);
+    }
+
     if ($action === 'lang') {
         $lang = (string)($input['value'] ?? '');
 
