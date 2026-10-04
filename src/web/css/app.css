@@ -125,18 +125,9 @@
 }
 
 .ulc-brand-icon {
-    display: grid;
-    place-items: center;
+    flex: none;
     width: 46px;
     height: 46px;
-    border-radius: 12px;
-    background: linear-gradient(145deg, #f4f6f8, #b9c0c8);
-    color: #222a33;
-}
-
-.ulc-brand-icon svg {
-    width: 26px;
-    height: 26px;
 }
 
 .ulc-brand strong {
@@ -1108,6 +1099,51 @@
 
 .ulc-facts dt {
     color: var(--ulc-muted);
+}
+
+/* ---------- Dashboard tile ---------- */
+
+/* .ulc brings the colour variables; the page frame of the settings page isn't wanted here. */
+.ulc.ulc-dash {
+    display: block;
+    min-height: 0;
+    margin: 4px 0 6px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+}
+
+.ulc-dash .ulc-nas {
+    padding: 7px 7px 5px;
+}
+
+/* Shorter bays than on the settings page, so the tile stays compact. */
+.ulc-dash .ulc-bay {
+    aspect-ratio: 1 / 1.45;
+    padding: 8px 0 7px;
+    gap: 6px;
+}
+
+.ulc-dash .ulc-bay-no {
+    font-size: 15px;
+}
+
+.ulc-dash .ulc-bay-info {
+    font-size: 11px;
+}
+
+/* Same footprint as the 32 px font icons of Unraid's own tiles. */
+.ulc-dash-icon {
+    width: 32px;
+    height: 32px;
+    margin-right: 8px;
+    vertical-align: top;
+}
+
+.ulc-dash-alert {
+    color: #ef4444;
+    font-weight: 600;
 }
 
 /* ---------- Toast ---------- */
