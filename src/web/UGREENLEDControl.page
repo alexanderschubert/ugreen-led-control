@@ -50,7 +50,7 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
 
 <header class="ulc-head">
     <div>
-        <h1>UGREEN LED Control <span class="ulc-badge" id="ulc-online">Verbinde…</span></h1>
+        <h1>UGREEN LED Control <span class="ulc-badge" id="ulc-online">Verbinde…</span> <span class="ulc-badge night" id="ulc-night-badge" hidden>Nachtmodus</span></h1>
         <p>Steuerung der LED-Beleuchtung deines <span data-model>UGREEN NAS</span> direkt in Unraid.</p>
     </div>
     <div class="ulc-banner" id="ulc-banner" hidden>
@@ -245,9 +245,44 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
 <!-- ================= Zeitpläne ================= -->
 
 <section class="ulc-view" data-view="schedules">
-    <article class="ulc-card ulc-later">
-        <h2>Zeitpläne <em class="ulc-soon">bald</em></h2>
-        <p class="ulc-muted">Nachtmodus mit eigener Helligkeit, LEDs zu bestimmten Zeiten aus- oder einschalten.</p>
+    <article class="ulc-card">
+        <h2>Nachtmodus</h2>
+        <p class="ulc-muted">Jeden Tag zu festen Zeiten dimmen oder ausschalten – auch über Mitternacht, z. B. 22:00 bis 07:00. Im Statusmodus folgen Laufwerks- und Netzwerk-LED; ausgeschaltete LEDs blinken nachts nicht.</p>
+
+        <label class="ulc-switch-row">
+            <span class="ulc-switch">
+                <input type="checkbox" id="ulc-night-enabled">
+                <span></span>
+            </span>
+            <span>
+                <strong>Nachtmodus aktivieren</strong>
+                <small id="ulc-night-state">—</small>
+            </span>
+        </label>
+
+        <div class="ulc-form">
+            <label for="ulc-night-start">Beginn</label>
+            <input type="time" id="ulc-night-start" value="22:00">
+
+            <label for="ulc-night-end">Ende</label>
+            <input type="time" id="ulc-night-end" value="07:00">
+
+            <label for="ulc-night-action">Verhalten</label>
+            <select id="ulc-night-action">
+                <option value="dim">Dimmen</option>
+                <option value="off">Ausschalten</option>
+            </select>
+
+            <label for="ulc-night-brightness">Helligkeit nachts</label>
+            <div class="ulc-inline">
+                <input type="range" id="ulc-night-brightness" min="1" max="100" step="1" value="8">
+                <output class="ulc-value" id="ulc-night-brightness-value">8%</output>
+            </div>
+        </div>
+
+        <div class="ulc-actions">
+            <button type="button" class="ulc-btn primary" id="ulc-night-save"><span class="ulc-ico" data-ulc-icon="check"></span>Speichern</button>
+        </div>
     </article>
 </section>
 

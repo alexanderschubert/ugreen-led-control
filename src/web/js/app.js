@@ -75,6 +75,7 @@
         leds: {},
         status: {},
         bayInfo: [],
+        schedule: null,
         busy: 0,
         tab: 'system',
         target: 'all',
@@ -241,6 +242,7 @@
 
             renderStatus(true);
             renderMode();
+            renderNight();
             loadBays();
         } catch (error) {
             renderStatus(false, error.message);
@@ -528,6 +530,71 @@
 
             effect.value = currentEffect([led]);
         });
+    }
+
+    /* Night mode */
+
+    async function loadSchedule() {
+        try {
+            state.schedule = await api({ action: 'schedule' });
+        } catch (error) {
+            return;
+        }
+
+        const card = q('#ulc-night-save').closest('.ulc-card');
+        if (!card.contains(document.activeElement)) {
+            q('#ulc-night-enabled').checked = state.schedule.enabled;
+            q('#ulc-night-start').value = state.schedule.start;
+            q('#ulc-night-end').value = state.schedule.end;
+            q('#ulc-night-action').value = state.schedule.action;
+
+            const slider = q('#ulc-night-brightness');
+            slider.value = Math.max(1, Math.round(state.schedule.brightness / 2.55));
+            setRangeFill(slider);
+            q('#ulc-night-brightness-value').textContent = `${slider.value}%`;
+        }
+
+        renderNight();
+    }
+
+    function renderNight() {
+        const schedule = state.schedule;
+        const night = Boolean(state.status.night);
+
+        q('#ulc-night-badge').hidden = !night;
+        q('#ulc-night-brightness').closest('.ulc-inline').classList.toggle('disabled', q('#ulc-night-action').value === 'off');
+
+        if (!schedule) return;
+
+        q('#ulc-night-state').textContent = !schedule.enabled
+            ? 'Aus – die LEDs bleiben rund um die Uhr gleich.'
+            : night
+                ? `Gerade Nacht – bis ${schedule.end} Uhr.`
+                : `Gerade Tag – Nacht ab ${schedule.start} Uhr.`;
+    }
+
+    function saveSchedule() {
+        const start = q('#ulc-night-start').value;
+        const end = q('#ulc-night-end').value;
+
+        if (!start || !end) {
+            toast('Bitte Beginn und Ende angeben.', 'error');
+            return;
+        }
+
+        return run(async () => {
+            await api({
+                action: 'schedule',
+                enabled: q('#ulc-night-enabled').checked ? '1' : '0',
+                start,
+                end,
+                night_action: q('#ulc-night-action').value,
+                brightness: levelFromPercent(Number(q('#ulc-night-brightness').value))
+            }, true);
+
+            await loadStatus();
+            await loadSchedule();
+        }, 'Nachtmodus gespeichert');
     }
 
     function renderMode() {
@@ -829,6 +896,18 @@
 
         q('#ulc-mode').addEventListener('change', event => setMode(event.target.value));
 
+        /* Night mode */
+
+        const nightBrightness = q('#ulc-night-brightness');
+
+        nightBrightness.addEventListener('input', () => {
+            setRangeFill(nightBrightness);
+            q('#ulc-night-brightness-value').textContent = `${nightBrightness.value}%`;
+        });
+
+        q('#ulc-night-action').addEventListener('change', renderNight);
+        q('#ulc-night-save').addEventListener('click', saveSchedule);
+
         /* Colours */
 
         qa('[data-tab]').forEach(button => {
@@ -954,6 +1033,7 @@
 
         await loadStatus();
         await refresh();
+        await loadSchedule();
 
         setInterval(() => {
             if (!document.hidden && !state.busy && !state.dragging) refresh();

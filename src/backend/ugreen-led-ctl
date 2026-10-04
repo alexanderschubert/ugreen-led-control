@@ -12,7 +12,8 @@ CONFIG="${UGREEN_LED_CONFIG:-/boot/config/plugins/ugreen-led-control/leds.cfg}"
 DISKS_INI="${UGREEN_DISKS_INI:-/var/local/emhttp/disks.ini}"
 SYS_BLOCK="${UGREEN_SYS_BLOCK:-/sys/block}"
 SYS_NET="${UGREEN_SYS_NET:-/sys/class/net}"
-PIDFILE="/var/run/ugreen-led-control.pid"
+PIDFILE="${UGREEN_PIDFILE:-/var/run/ugreen-led-control.pid}"
+SCHEDULE_STATE="${UGREEN_SCHEDULE_STATE:-/var/run/ugreen-led-control.schedule}"
 
 DEFAULT_DISK_COLOR="255 160 0"
 DEFAULT_NETDEV_COLOR="0 200 83"
@@ -55,6 +56,7 @@ Usage:
   ugreen-led-ctl apply        (restore the settings saved by the web UI)
   ugreen-led-ctl bays         (which disk sits in which bay)
   ugreen-led-ctl daemon start|stop|restart|status|run
+  ugreen-led-ctl schedule [--force]   (night mode; run every minute by cron)
   ugreen-led-ctl on <led>
   ugreen-led-ctl off <led>
   ugreen-led-ctl brightness <led> <0-255>
@@ -201,6 +203,11 @@ status() {
     else
         printf '  "daemon": false,\n'
     fi
+    if is_night; then
+        printf '  "night": true,\n'
+    else
+        printf '  "night": false,\n'
+    fi
     printf '  "disk_error_color": "%s",\n' "$(config_value disk_error_color | grep . || echo "$DEFAULT_ERROR_COLOR")"
     printf '  "network_device": "%s",\n' "$(network_device)"
     printf '  "controller": "ugreen-led-i2c (ohne Kernel-Modul)",\n'
@@ -338,6 +345,89 @@ saved_color() {
 
 saved_brightness() {
     config_value "${1}_brightness" | grep . || echo 255
+}
+
+# ============================================================
+# Night mode
+# ============================================================
+
+# night_enabled="1", night_start/night_end "HH:MM" (may span midnight),
+# night_action "dim" (down to night_brightness, 0-255) or "off".
+is_night() {
+    local start
+    local end
+    local now
+
+    [ "$(config_value night_enabled)" = "1" ] || return 1
+
+    start="$(config_value night_start | grep . || echo 22:00)"
+    end="$(config_value night_end | grep . || echo 07:00)"
+    now="${UGREEN_NOW:-$(date +%H%M)}"
+    start="${start/:/}"
+    end="${end/:/}"
+
+    if [ "$((10#$start))" -lt "$((10#$end))" ]; then
+        [ "$((10#$now))" -ge "$((10#$start))" ] && [ "$((10#$now))" -lt "$((10#$end))" ]
+    elif [ "$((10#$start))" -gt "$((10#$end))" ]; then
+        [ "$((10#$now))" -ge "$((10#$start))" ] || [ "$((10#$now))" -lt "$((10#$end))" ]
+    else
+        return 1
+    fi
+}
+
+# Brightness to show: the saved one by day, at most the night level (or 0) by night.
+effective_brightness() {
+    local saved="$1"
+    local night="$2"
+    local level
+
+    if [ "$night" -eq 1 ]; then
+        [ "$(config_value night_action)" = "off" ] && { echo 0; return; }
+        level="$(config_value night_brightness | grep . || echo 20)"
+        [ "$saved" -gt "$level" ] && saved="$level"
+    fi
+
+    echo "$saved"
+}
+
+# Night look for LEDs the daemon doesn't drive: dim or off, effects keep running.
+apply_night() {
+    local led
+    local brightness
+
+    for led in "$@"; do
+        brightness="$(effective_brightness "$(saved_brightness "$led")" 1)"
+        if [ "$brightness" -eq 0 ]; then
+            tool set "$led" off >/dev/null 2>&1
+        else
+            tool set "$led" brightness "$brightness" >/dev/null 2>&1
+        fi
+    done
+}
+
+# Switch between day and night when the state changes (cron runs this every minute).
+schedule_tick() {
+    local force="${1:-}"
+    local wanted="day"
+    local leds
+
+    is_night && wanted="night"
+    [ "$force" != "--force" ] && [ "$(cat "$SCHEDULE_STATE" 2>/dev/null)" = "$wanted" ] && return 0
+    echo "$wanted" > "$SCHEDULE_STATE"
+
+    if daemon_running; then
+        # The daemon picks up day/night itself after a restart; the power LED is ours.
+        daemon_command restart >/dev/null
+        leds="power"
+    else
+        apply_config >/dev/null
+        leds="$(supported_leds)"
+    fi
+
+    # shellcheck disable=SC2086
+    [ "$wanted" = "night" ] && apply_night $leds
+
+    log "night mode: $wanted"
 }
 
 # ============================================================
@@ -496,6 +586,8 @@ daemon_run() {
     local net_blinking=0
     local rx
     local tx
+    local night=0
+    local brightness
     local -a devices=()
     local -a applied=()
     local -a counters=()
@@ -518,6 +610,9 @@ daemon_run() {
 
             error_color="$(config_value disk_error_color | grep . || echo "$DEFAULT_ERROR_COLOR")"
 
+            night=0
+            is_night && night=1
+
             # Every 30 s everything is written again, which also undoes manual writes (Test, effects).
             if [ $((tick % 150)) -eq 0 ]; then
                 applied=()
@@ -529,15 +624,17 @@ daemon_run() {
                 dev="$(bay_device "$bay")"
                 devices[bay]="$dev"
 
-                if [ -z "$dev" ]; then
+                brightness="$(effective_brightness "$(saved_brightness "disk$bay")" "$night")"
+
+                if [ -z "$dev" ] || [ "$brightness" -eq 0 ]; then
                     wanted="off"
                 else
                     # shellcheck disable=SC2046
                     set -- $(unraid_disk "$dev")
                     if is_error_status "${2:-}"; then
-                        wanted="$error_color|$(saved_brightness "disk$bay")"
+                        wanted="$error_color|$brightness"
                     else
-                        wanted="$(saved_color "disk$bay" "$DEFAULT_DISK_COLOR")|$(saved_brightness "disk$bay")"
+                        wanted="$(saved_color "disk$bay" "$DEFAULT_DISK_COLOR")|$brightness"
                     fi
                 fi
 
@@ -549,10 +646,14 @@ daemon_run() {
             done
 
             if [ -n "$net_dev" ]; then
-                if [ "$net_ok" -eq 1 ]; then
-                    wanted="$(saved_color netdev "$DEFAULT_NETDEV_COLOR")|$(saved_brightness netdev)"
+                brightness="$(effective_brightness "$(saved_brightness netdev)" "$night")"
+
+                if [ "$brightness" -eq 0 ]; then
+                    wanted="off"
+                elif [ "$net_ok" -eq 1 ]; then
+                    wanted="$(saved_color netdev "$DEFAULT_NETDEV_COLOR")|$brightness"
                 else
-                    wanted="$error_color|$(saved_brightness netdev)"
+                    wanted="$error_color|$brightness"
                 fi
 
                 if [ "$net_wanted" != "$wanted" ]; then
@@ -575,7 +676,7 @@ daemon_run() {
         # Every 0.2 s: blink while the read/write counters of a disk move.
         for bay in $(seq 1 "$bays"); do
             dev="${devices[bay]:-}"
-            [ -n "$dev" ] || continue
+            [ -n "$dev" ] && [ "${applied[bay]:-}" != "off" ] || continue
 
             read -r reads _ _ _ writes rest < "$SYS_BLOCK/$dev/stat" 2>/dev/null || continue
 
@@ -592,7 +693,7 @@ daemon_run() {
         done
 
         # The same for network traffic.
-        if [ -n "$net_dev" ] \
+        if [ -n "$net_dev" ] && [ "$net_wanted" != "off" ] \
             && read -r rx < "$SYS_NET/$net_dev/statistics/rx_bytes" 2>/dev/null \
             && read -r tx < "$SYS_NET/$net_dev/statistics/tx_bytes" 2>/dev/null; then
 
@@ -681,6 +782,7 @@ case "${1:-help}" in
     apply) apply_config ;;
     bays) bays_json ;;
     daemon) daemon_command "${2:-status}" ;;
+    schedule) schedule_tick "${2:-}" ;;
 
     get) need $# 2 "get <led>"; get_status "$2" ;;
     on) need $# 2 "on <led>"; set_on "$2" ;;
