@@ -208,6 +208,9 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
     <article class="ulc-card">
         <h2>LED Einstellungen</h2>
         <p class="ulc-muted">Jede LED einzeln: Farbe, Helligkeit und Effekt werden sofort übernommen.</p>
+        <p class="ulc-hint" data-status-hint hidden>
+            Statusmodus aktiv: Laufwerks- und Netzwerk-LED zeigen Aktivität und Fehler. Farbe und Helligkeit stellst du hier ein, Effekte gelten nur für die Power-LED.
+        </p>
         <div class="ulc-table" id="ulc-led-table"></div>
     </article>
 </section>
@@ -218,6 +221,9 @@ window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
     <article class="ulc-card">
         <h2>Laufwerke</h2>
         <p class="ulc-muted">Die LED unter jedem Schacht. Schacht 1 ist ganz links.</p>
+        <p class="ulc-hint" data-status-hint hidden>
+            Statusmodus aktiv: Laufwerks- und Netzwerk-LED zeigen Aktivität und Fehler. Farbe und Helligkeit stellst du hier ein, Effekte gelten nur für die Power-LED.
+        </p>
         <div class="ulc-table" id="ulc-bay-table"></div>
     </article>
     <article class="ulc-card">
