@@ -41,6 +41,58 @@ function run_backend(array $args): array
     ];
 }
 
+// Saved per-LED settings, restored at boot by `ugreen-led-ctl apply`.
+const CONFIG_FILE = '/boot/config/plugins/ugreen-led-control/leds.cfg';
+
+// What a backend command changes in the saved settings of one LED.
+function config_changes(array $args): array
+{
+    switch ($args[0]) {
+        case 'color':
+            return ['color' => "{$args[2]} {$args[3]} {$args[4]}"];
+        case 'brightness':
+            return ['brightness' => $args[2]];
+        case 'on':
+            return ['brightness' => '255'];
+        case 'off':
+            return ['brightness' => '0'];
+        case 'blink':
+        case 'breath':
+            return ['effect' => $args[0], 'on' => $args[2], 'off' => $args[3]];
+        case 'stop':
+            return ['effect' => 'none'];
+    }
+
+    return [];
+}
+
+function save_config(array $leds, array $changes): bool
+{
+    // Values are always quoted, so parse_ini_file keeps "none" and "0" as they are.
+    $config = is_file(CONFIG_FILE) ? (parse_ini_file(CONFIG_FILE) ?: []) : [];
+
+    foreach ($leds as $led) {
+        foreach ($changes as $key => $value) {
+            $config["{$led}_{$key}"] = (string)$value;
+        }
+    }
+
+    ksort($config);
+
+    $content = '';
+    foreach ($config as $key => $value) {
+        $content .= "{$key}=\"{$value}\"\n";
+    }
+
+    if (!is_dir(dirname(CONFIG_FILE))) {
+        @mkdir(dirname(CONFIG_FILE), 0777, true);
+    }
+
+    $tmp = CONFIG_FILE . '.tmp';
+
+    return file_put_contents($tmp, $content) !== false && rename($tmp, CONFIG_FILE);
+}
+
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 if ($method === 'GET') {
@@ -68,6 +120,8 @@ if ($method === 'GET') {
                     'raw' => $result['output']
                 ], 500);
             }
+
+            $data['settings_saved'] = is_file(CONFIG_FILE);
 
             respond($data);
 
@@ -302,6 +356,13 @@ if ($method === 'POST') {
                 'error' => "{$target}: {$result['output']}"
             ], 500);
         }
+    }
+
+    if (!save_config($leds, config_changes($args))) {
+        respond([
+            'ok' => false,
+            'error' => 'Auf die LEDs geschrieben, aber nicht gespeichert: ' . CONFIG_FILE . ' ist nicht beschreibbar'
+        ], 500);
     }
 
     respond([
