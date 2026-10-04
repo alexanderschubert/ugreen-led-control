@@ -179,6 +179,8 @@ all_leds() {
 }
 
 status() {
+    local device
+
     printf '{\n'
     printf '  "ok": true,\n'
     if foreign_monitor_running; then
@@ -198,8 +200,16 @@ status() {
     printf '  "disk_error_color": "%s",\n' "$(config_value disk_error_color | grep . || echo "$DEFAULT_ERROR_COLOR")"
     printf '  "network_device": "%s",\n' "$(network_device)"
     printf '  "controller": "led_ugreen",\n'
-    printf '  "i2c_bus": 0,\n'
-    printf '  "i2c_address": "0x3a",\n'
+    # The real device, e.g. /sys/bus/i2c/devices/0-003a; empty while it isn't declared.
+    device="$(ls -d /sys/bus/i2c/devices/*-003a 2>/dev/null | head -n 1)"
+    if [ -n "$device" ]; then
+        device="${device##*/}"
+        printf '  "i2c_bus": %s,\n' "${device%%-*}"
+        printf '  "i2c_address": "0x3a",\n'
+    else
+        printf '  "i2c_bus": null,\n'
+        printf '  "i2c_address": null,\n'
+    fi
     printf '  "leds": '
 
     list_leds

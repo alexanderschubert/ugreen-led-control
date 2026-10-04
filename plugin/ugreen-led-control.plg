@@ -26,6 +26,7 @@
 
 ### 0.5.1
 - Fix: without ugreenleds-driver no LEDs appeared, because the LED controller was never declared on the SMBus; the plugin now does that itself
+- The System page shows whether the LED controller is really declared and which LEDs were found, instead of fixed values
 
 ### 0.5.0
 - Status mode: disk LEDs blink on activity and switch to the error colour when Unraid reports a disabled, invalid or missing disk; empty bays stay dark; the network LED blinks with traffic and turns to the error colour without link or gateway
