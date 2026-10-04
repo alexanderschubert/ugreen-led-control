@@ -190,6 +190,18 @@ if ($method === 'GET') {
                 'bays' => $data
             ]);
 
+        case 'schedule':
+            $config = read_settings();
+
+            respond([
+                'ok' => true,
+                'enabled' => ($config['night_enabled'] ?? '0') === '1',
+                'start' => $config['night_start'] ?? '22:00',
+                'end' => $config['night_end'] ?? '07:00',
+                'action' => $config['night_action'] ?? 'dim',
+                'brightness' => (int)($config['night_brightness'] ?? 20)
+            ]);
+
         case 'led':
             $led = $_GET['led'] ?? '';
 
@@ -253,6 +265,45 @@ if ($method === 'POST') {
             'ok' => true,
             'mode' => $mode
         ]);
+    }
+
+    if ($action === 'schedule') {
+        $time = '/^([01][0-9]|2[0-3]):[0-5][0-9]$/';
+        $start = (string)($input['start'] ?? '');
+        $end = (string)($input['end'] ?? '');
+        $nightAction = (string)($input['night_action'] ?? '');
+        $brightness = filter_var($input['brightness'] ?? null, FILTER_VALIDATE_INT);
+
+        if (
+            !preg_match($time, $start) || !preg_match($time, $end) ||
+            !in_array($nightAction, ['dim', 'off'], true) ||
+            $brightness === false || $brightness < 0 || $brightness > 255
+        ) {
+            respond([
+                'ok' => false,
+                'error' => 'Ungültige Zeitplan-Werte'
+            ], 400);
+        }
+
+        $saved = save_settings([
+            'night_enabled' => ($input['enabled'] ?? '') === '1' ? '1' : '0',
+            'night_start' => $start,
+            'night_end' => $end,
+            'night_action' => $nightAction,
+            'night_brightness' => (string)$brightness
+        ]);
+
+        if (!$saved) {
+            respond([
+                'ok' => false,
+                'error' => CONFIG_FILE . ' ist nicht beschreibbar'
+            ], 500);
+        }
+
+        // Apply right away instead of waiting for the next cron minute.
+        run_backend(['schedule', '--force']);
+
+        respond(['ok' => true]);
     }
 
     if ($action === 'error_color') {

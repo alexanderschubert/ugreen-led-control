@@ -219,6 +219,16 @@
     color: #4ade80;
 }
 
+.ulc-badge.night {
+    border-color: rgba(167, 139, 250, .6);
+    background: rgba(124, 58, 237, .15);
+    color: #c4b5fd;
+}
+
+.ulc-badge[hidden] {
+    display: none;
+}
+
 .ulc-badge.offline {
     border-color: rgba(239, 68, 68, .6);
     background: rgba(239, 68, 68, .1);
@@ -445,6 +455,24 @@
     border-radius: 8px;
     background: var(--ulc-card-2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b96a3' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center / 16px;
     cursor: pointer;
+}
+
+.ulc input[type="time"] {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--ulc-border);
+    border-radius: 8px;
+    background: var(--ulc-card-2);
+    font-variant-numeric: tabular-nums;
+}
+
+.ulc input[type="time"]:focus-visible {
+    border-color: var(--ulc-accent);
+}
+
+.ulc-form .ulc-inline.disabled {
+    opacity: .45;
+    pointer-events: none;
 }
 
 .ulc select:disabled {

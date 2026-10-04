@@ -64,6 +64,10 @@ chmod 644 "$DEST/js/app.js"
 if grep -qx 'mode="status"' /boot/config/plugins/ugreen-led-control/leds.cfg 2>/dev/null; then
     "$DEST/backend/ugreen-led-ctl" daemon start
 fi
+"$DEST/backend/ugreen-led-ctl" schedule --force
+
+echo "* * * * * $DEST/backend/ugreen-led-ctl schedule >/dev/null 2>&1" > /boot/config/plugins/ugreen-led-control/ugreen-led-control.cron
+/usr/local/sbin/update_cron
 
 echo
 echo "Installation complete."

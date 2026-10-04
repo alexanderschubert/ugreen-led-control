@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.6.1">
+<!ENTITY version   "0.7.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.7.0
+- Night mode (Zeitpläne): from a start to an end time, also across midnight, the LEDs are dimmed to a night brightness or switched off; in status mode disk and network LEDs follow, and dark LEDs don't blink
 
 ### 0.6.1
 - Status mode is easier to recognise: disk and network LEDs show "Statusmodus" instead of a greyed-out effect field, and the LED and Laufwerke pages explain what the mode does
@@ -160,9 +163,19 @@ if "${PLUGIN_DIR}/backend/ugreen-led-i2c" probe >/dev/null 2>&1; then
     if grep -qx 'mode="status"' "${BOOT_DIR}/leds.cfg" 2>/dev/null; then
         "${PLUGIN_DIR}/backend/ugreen-led-ctl" daemon restart 2>&1 | sed 's/^/[UGREEN LED Control] /'
     fi
+
+    # Night mode right away; afterwards cron checks it every minute.
+    "${PLUGIN_DIR}/backend/ugreen-led-ctl" schedule --force
 else
     log "WARNING: The LED controller does not answer on the SMBus; no LEDs available."
 fi
+
+#
+# Night mode schedule: Unraid's update_cron merges /boot/config/plugins/*/*.cron
+#
+
+echo "* * * * * ${PLUGIN_DIR}/backend/ugreen-led-ctl schedule >/dev/null 2>&1" > "${BOOT_DIR}/${NAME}.cron"
+/usr/local/sbin/update_cron
 
 #
 # Drop cached files of older versions
@@ -205,6 +218,7 @@ fi
 rm -rf "${PLUGIN_DIR}"
 
 rm -rf "${BOOT_DIR}"
+/usr/local/sbin/update_cron
 
 log "Removed."
 
