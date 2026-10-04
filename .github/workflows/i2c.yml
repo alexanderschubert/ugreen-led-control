@@ -1,0 +1,33 @@
+name: I2C tool
+
+on:
+  push:
+    branches: [main]
+    paths: [i2c/**, .github/workflows/i2c.yml]
+  pull_request:
+    paths: [i2c/**, .github/workflows/i2c.yml]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: i2c
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: i2c/go.mod
+
+      - run: gofmt -l . | tee /dev/stderr | (! read)
+      - run: go vet ./...
+      - run: go test ./...
+
+      # Static binary: runs on every Unraid kernel without libraries.
+      - run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o ugreen-led-i2c .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ugreen-led-i2c
+          path: i2c/ugreen-led-i2c
