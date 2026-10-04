@@ -92,6 +92,19 @@ function save_settings(array $changes): bool
     return file_put_contents($tmp, $content) !== false && rename($tmp, CONFIG_FILE);
 }
 
+// A colour or a hardware effect chosen for one of these LEDs replaces a running
+// rainbow/temperature effect, which would otherwise paint over it.
+function stop_fx_on(array $leds): void
+{
+    $config = read_settings();
+    $fxLeds = explode(',', $config['fx_leds'] ?? '');
+
+    if (($config['fx_name'] ?? '') !== '' && array_intersect($leds, $fxLeds)) {
+        run_backend(['fx', 'stop']);
+        save_settings(['fx_name' => '']);
+    }
+}
+
 function save_config(array $leds, array $changes): bool
 {
     $config = read_settings();
@@ -249,6 +262,11 @@ if ($method === 'POST') {
             ], 400);
         }
 
+        // The daemon drives disk and network LEDs; an effect on them has to go.
+        if ($mode === 'status' && (read_settings()['fx_leds'] ?? 'power') !== 'power') {
+            stop_fx_on(['netdev', 'disk1', 'disk2', 'disk3', 'disk4', 'disk5', 'disk6', 'disk7', 'disk8']);
+        }
+
         $result = run_backend(['daemon', $mode === 'status' ? 'restart' : 'stop']);
 
         if ($result['code'] !== 0) {
@@ -265,6 +283,62 @@ if ($method === 'POST') {
             'ok' => true,
             'mode' => $mode
         ]);
+    }
+
+    if ($action === 'fx') {
+        $name = (string)($input['value'] ?? '');
+
+        if ($name === 'none') {
+            run_backend(['fx', 'stop']);
+            save_settings(['fx_name' => '']);
+            respond(['ok' => true]);
+        }
+
+        $fxLeds = explode(',', (string)($input['led'] ?? ''));
+        $speed = filter_var($input['speed'] ?? null, FILTER_VALIDATE_INT);
+
+        foreach ($fxLeds as $led) {
+            if (!preg_match('/^(power|netdev|disk[1-8])$/', $led)) {
+                respond([
+                    'ok' => false,
+                    'error' => 'Invalid LED'
+                ], 400);
+            }
+        }
+
+        if (!in_array($name, ['rainbow', 'temperature'], true) || $speed === false || $speed < 0 || $speed > 4) {
+            respond([
+                'ok' => false,
+                'error' => 'Ungültige Effekt-Werte'
+            ], 400);
+        }
+
+        if ((read_settings()['mode'] ?? 'manual') === 'status' && $fxLeds !== ['power']) {
+            respond([
+                'ok' => false,
+                'error' => 'Im Statusmodus gelten Effekte nur für die Power-LED'
+            ], 400);
+        }
+
+        save_settings([
+            'fx_name' => $name,
+            'fx_leds' => implode(',', $fxLeds),
+            'fx_speed' => (string)$speed,
+            'fx_reverse' => ($input['reverse'] ?? '') === '1' ? '1' : '0',
+            'fx_idle' => ($input['idle'] ?? '') === '1' ? '1' : '0'
+        ]);
+
+        $result = run_backend(['fx', 'restart']);
+
+        if ($result['code'] !== 0) {
+            save_settings(['fx_name' => '']);
+            respond([
+                'ok' => false,
+                'error' => $result['output']
+            ], 500);
+        }
+
+        respond(['ok' => true]);
     }
 
     if ($action === 'schedule') {
@@ -488,6 +562,10 @@ if ($method === 'POST') {
                 'ok' => false,
                 'error' => 'Unknown command'
             ], 400);
+    }
+
+    if ($action !== 'brightness') {
+        stop_fx_on($leds);
     }
 
     foreach ($leds as $target) {

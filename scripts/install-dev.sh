@@ -11,6 +11,7 @@ echo "Target: $DEST"
 
 # The running daemon belongs to the old files.
 if [ -x "$DEST/backend/ugreen-led-ctl" ]; then
+    "$DEST/backend/ugreen-led-ctl" fx stop >/dev/null 2>&1 || true
     "$DEST/backend/ugreen-led-ctl" daemon stop >/dev/null 2>&1 || true
 fi
 
@@ -65,6 +66,9 @@ if grep -qx 'mode="status"' /boot/config/plugins/ugreen-led-control/leds.cfg 2>/
     "$DEST/backend/ugreen-led-ctl" daemon start
 fi
 "$DEST/backend/ugreen-led-ctl" schedule --force
+if grep -q '^fx_name="[a-z]' /boot/config/plugins/ugreen-led-control/leds.cfg 2>/dev/null; then
+    "$DEST/backend/ugreen-led-ctl" fx start
+fi
 
 echo "* * * * * $DEST/backend/ugreen-led-ctl schedule >/dev/null 2>&1" > /boot/config/plugins/ugreen-led-control/ugreen-led-control.cron
 /usr/local/sbin/update_cron

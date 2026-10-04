@@ -14,6 +14,8 @@ SYS_BLOCK="${UGREEN_SYS_BLOCK:-/sys/block}"
 SYS_NET="${UGREEN_SYS_NET:-/sys/class/net}"
 PIDFILE="${UGREEN_PIDFILE:-/var/run/ugreen-led-control.pid}"
 SCHEDULE_STATE="${UGREEN_SCHEDULE_STATE:-/var/run/ugreen-led-control.schedule}"
+FX_PIDFILE="${UGREEN_FX_PIDFILE:-/var/run/ugreen-led-control-fx.pid}"
+FX_LOG="${UGREEN_FX_LOG:-/var/run/ugreen-led-control-fx.log}"
 
 DEFAULT_DISK_COLOR="255 160 0"
 DEFAULT_NETDEV_COLOR="0 200 83"
@@ -57,6 +59,7 @@ Usage:
   ugreen-led-ctl bays         (which disk sits in which bay)
   ugreen-led-ctl daemon start|stop|restart|status|run
   ugreen-led-ctl schedule [--force]   (night mode; run every minute by cron)
+  ugreen-led-ctl fx start|stop|restart|status   (rainbow/temperature from leds.cfg)
   ugreen-led-ctl on <led>
   ugreen-led-ctl off <led>
   ugreen-led-ctl brightness <led> <0-255>
@@ -203,6 +206,15 @@ status() {
     else
         printf '  "daemon": false,\n'
     fi
+    if fx_running; then
+        printf '  "fx": "%s",\n' "$(config_value fx_name)"
+    else
+        printf '  "fx": "",\n'
+    fi
+    printf '  "fx_leds": "%s",\n' "$(config_value fx_leds)"
+    printf '  "fx_speed": %s,\n' "$(config_value fx_speed | grep . || echo 2)"
+    printf '  "fx_reverse": %s,\n' "$([ "$(config_value fx_reverse)" = 1 ] && echo true || echo false)"
+    printf '  "fx_idle": %s,\n' "$([ "$(config_value fx_idle)" = 1 ] && echo true || echo false)"
     if is_night; then
         printf '  "night": true,\n'
     else
@@ -765,6 +777,72 @@ daemon_command() {
 }
 
 # ============================================================
+# Software effects (rainbow, temperature)
+# ============================================================
+
+# fx_name rainbow|temperature, fx_leds "power,disk1,...", fx_speed 0-4,
+# fx_reverse 0|1, fx_idle 0|1 – run by ugreen-led-i2c until stopped.
+fx_running() {
+    [ -f "$FX_PIDFILE" ] && kill -0 "$(cat "$FX_PIDFILE" 2>/dev/null)" 2>/dev/null
+}
+
+fx_stop() {
+    if fx_running; then
+        kill "$(cat "$FX_PIDFILE")" 2>/dev/null
+    fi
+    rm -f "$FX_PIDFILE"
+}
+
+fx_start() {
+    local name
+    local leds
+    local -a args=()
+
+    name="$(config_value fx_name)"
+    if [ -z "$name" ]; then
+        echo "No effect configured."
+        return 0
+    fi
+
+    fx_stop
+
+    leds="$(config_value fx_leds | grep . || echo power)"
+    args+=(--speed "$(config_value fx_speed | grep . || echo 2)")
+    [ "$(config_value fx_reverse)" = "1" ] && args+=(--reverse)
+    [ "$(config_value fx_idle)" = "1" ] && args+=(--idle-only)
+
+    setsid "$LED_TOOL" "${args[@]}" effect "$name" "$leds" </dev/null >/dev/null 2>"$FX_LOG" &
+    echo $! > "$FX_PIDFILE"
+
+    # A missing temperature sensor ends the process right away.
+    sleep 0.5
+    if ! fx_running; then
+        rm -f "$FX_PIDFILE"
+        echo "ERROR: Effect '$name' did not start: $(head -n 1 "$FX_LOG" 2>/dev/null)" >&2
+        return 1
+    fi
+
+    echo "Effect $name started on $leds."
+}
+
+fx_command() {
+    case "${1:-status}" in
+        start) fx_start ;;
+        stop) fx_stop; echo "Effect stopped." ;;
+        restart) fx_start ;;
+        status)
+            if fx_running; then
+                echo "running: $(config_value fx_name) on $(config_value fx_leds)"
+            else
+                echo "stopped"
+                return 3
+            fi
+            ;;
+        *) echo "Usage: $0 fx start|stop|restart|status" >&2; return 2 ;;
+    esac
+}
+
+# ============================================================
 # Commands
 # ============================================================
 
@@ -783,6 +861,7 @@ case "${1:-help}" in
     bays) bays_json ;;
     daemon) daemon_command "${2:-status}" ;;
     schedule) schedule_tick "${2:-}" ;;
+    fx) fx_command "${2:-status}" ;;
 
     get) need $# 2 "get <led>"; get_status "$2" ;;
     on) need $# 2 "on <led>"; set_on "$2" ;;
