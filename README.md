@@ -51,6 +51,10 @@ bash scripts/install-dev.sh
 
 The plugin downloads its files from that tag and the binary from the release. Wait for the workflow to finish (about a minute) before updating in Unraid; an update attempted earlier can leave GitHub caching a 404 for up to five minutes.
 
+## Community Applications
+
+`ca_profile.xml` and `plugins/ugreen-led-control.xml` are the Community Applications listing (author profile and plugin entry). The `<PluginURL>` in the listing must stay identical to the `pluginURL` of `plugin/ugreen-led-control.plg`.
+
 ## License
 
 MIT.

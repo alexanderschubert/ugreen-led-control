@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<CommunityApplications>
+  <Profile>Unraid plugins by Alexander Schubert. UGREEN LED Control drives the front LEDs of UGREEN DX/DXP NAS devices: colours, effects, a status mode for disk activity, disk errors, SMART warnings and parity checks, night mode, Unraid alerts and a dashboard tile. Support is in the Unraid forum thread linked from each plugin.</Profile>
+  <Icon>https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control/main/src/web/images/ugreen-led-control.png</Icon>
+  <WebPage>https://github.com/alexanderschubert</WebPage>
+  <Forum>https://forums.unraid.net/topic/200791-plugin-ugreen-led-control-led-control-for-ugreen-dxdxp-nas/</Forum>
+</CommunityApplications>
