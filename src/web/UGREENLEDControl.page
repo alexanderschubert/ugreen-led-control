@@ -239,7 +239,7 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
     </article>
     <article class="ulc-card">
         <h2 data-i18n="display.title">Statusanzeige</h2>
-        <p class="ulc-muted" data-i18n="display.intro">Wie die Laufwerks-LEDs im Statusmodus zusätzlich Unraid-Zustände zeigen.</p>
+        <p class="ulc-muted" data-i18n="display.intro">Wie die Laufwerks- und Netzwerk-LEDs im Statusmodus Unraid-Zustände zeigen.</p>
 
         <label class="ulc-switch-row">
             <span class="ulc-switch">
@@ -268,6 +268,13 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
             <select id="ulc-disk-color-mode">
                 <option value="own" data-i18n="display.color_own">Eigene Farbe</option>
                 <option value="temperature" data-i18n="display.color_temperature">Nach Plattentemperatur</option>
+            </select>
+
+            <label for="ulc-netdev-status" data-i18n="display.netdev">Netzwerk-LED</label>
+            <select id="ulc-netdev-status">
+                <option value="activity" data-i18n="display.netdev_activity">Blinkt bei Datenverkehr</option>
+                <option value="link" data-i18n="display.netdev_link">Nur Verbindung, ohne Blinken</option>
+                <option value="manual" data-i18n="display.netdev_manual">Manuell wie im manuellen Modus</option>
             </select>
 
             <label data-i18n="display.smart_color">Farbe bei SMART-Warnung</label>

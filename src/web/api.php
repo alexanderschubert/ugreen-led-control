@@ -94,6 +94,14 @@ function save_settings(array $changes): bool
 
 // A colour or a hardware effect chosen for one of these LEDs replaces a running
 // rainbow/temperature effect, which would otherwise paint over it.
+// LEDs the status daemon drives: all bays, and the network LED unless it stays manual.
+function daemon_leds(): array
+{
+    $leds = ['disk1', 'disk2', 'disk3', 'disk4', 'disk5', 'disk6', 'disk7', 'disk8'];
+
+    return (read_settings()['netdev_status'] ?? 'activity') === 'manual' ? $leds : ['netdev', ...$leds];
+}
+
 function stop_fx_on(array $leds): void
 {
     $config = read_settings();
@@ -263,8 +271,8 @@ if ($method === 'POST') {
         }
 
         // The daemon drives disk and network LEDs; an effect on them has to go.
-        if ($mode === 'status' && (read_settings()['fx_leds'] ?? 'power') !== 'power') {
-            stop_fx_on(['netdev', 'disk1', 'disk2', 'disk3', 'disk4', 'disk5', 'disk6', 'disk7', 'disk8']);
+        if ($mode === 'status') {
+            stop_fx_on(daemon_leds());
         }
 
         $result = run_backend(['daemon', $mode === 'status' ? 'restart' : 'stop']);
@@ -313,6 +321,15 @@ if ($method === 'POST') {
             ], 400);
         }
 
+        $netdevStatus = (string)($input['netdev_status'] ?? '');
+
+        if (!in_array($netdevStatus, ['activity', 'link', 'manual'], true)) {
+            respond([
+                'ok' => false,
+                'error' => 'Invalid status display values'
+            ], 400);
+        }
+
         $standbyMode = (string)($input['standby_mode'] ?? '');
         $standbyLevel = filter_var($input['standby_level'] ?? null, FILTER_VALIDATE_INT);
 
@@ -330,6 +347,7 @@ if ($method === 'POST') {
             'standby_mode' => $standbyMode,
             'standby_level' => (string)$standbyLevel,
             'disk_color_mode' => $colorMode,
+            'netdev_status' => $netdevStatus,
             'smart_enabled' => ($input['smart_enabled'] ?? '') === '1' ? '1' : '0',
             'smart_color' => implode(' ', $smartRgb)
         ]);
@@ -339,6 +357,11 @@ if ($method === 'POST') {
                 'ok' => false,
                 'error' => CONFIG_FILE . ' is not writable'
             ], 500);
+        }
+
+        // The network LED goes back to the daemon: an effect on it has to go.
+        if ((read_settings()['mode'] ?? 'manual') === 'status') {
+            stop_fx_on(daemon_leds());
         }
 
         respond(['ok' => true]);
@@ -482,10 +505,10 @@ if ($method === 'POST') {
             ], 400);
         }
 
-        if ((read_settings()['mode'] ?? 'manual') === 'status' && $fxLeds !== ['power']) {
+        if ((read_settings()['mode'] ?? 'manual') === 'status' && array_intersect($fxLeds, daemon_leds())) {
             respond([
                 'ok' => false,
-                'error' => 'In status mode effects apply to the power LED only'
+                'error' => 'In status mode effects apply to the power LED (and a manual network LED) only'
             ], 400);
         }
 
