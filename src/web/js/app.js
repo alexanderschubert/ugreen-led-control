@@ -107,7 +107,9 @@
     const RAINBOW_STEP_MS = [600, 400, 250, 150, 80];
 
     // In status mode the daemon drives disk and network LEDs; only colour and brightness stay manual.
-    const managed = led => statusMode() && (led === 'netdev' || led.startsWith('disk'));
+    // The network LED can be left manual (netdev_status).
+    const netdevManual = () => state.status.netdev_status === 'manual';
+    const managed = led => statusMode() && (led.startsWith('disk') || (led === 'netdev' && !netdevManual()));
 
     const ledLabel = led =>
         led === 'power' ? t('led.power')
@@ -647,10 +649,10 @@
 
         // Effects would fight the daemon on disk and network LEDs.
         [...target.options].forEach(option => {
-            option.disabled = status && option.value !== 'power';
+            option.disabled = status && option.value !== 'power' && !(option.value === 'netdev' && netdevManual());
         });
 
-        if (status && state.target !== 'power') {
+        if (status && [...target.options].some(option => option.value === state.target && option.disabled)) {
             state.target = 'power';
             target.value = 'power';
         }
@@ -784,6 +786,7 @@
 
         q('#ulc-standby-mode').value = status.standby_mode || 'dim';
         q('#ulc-disk-color-mode').value = status.disk_color_mode || 'own';
+        q('#ulc-netdev-status').value = status.netdev_status || 'activity';
         q('#ulc-smart-enabled').checked = status.smart_enabled !== false;
 
         const smartColor = q('#ulc-smart-color');
@@ -812,6 +815,7 @@
             () => api({
                 action: 'status_display',
                 disk_color_mode: q('#ulc-disk-color-mode').value,
+                netdev_status: q('#ulc-netdev-status').value,
                 smart_enabled: q('#ulc-smart-enabled').checked ? '1' : '0',
                 smart_r: smart.r,
                 smart_g: smart.g,
