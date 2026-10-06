@@ -643,6 +643,10 @@
         }
         q('#ulc-idle').checked = Boolean(state.status.fx_idle);
         q('#ulc-mode-hint').hidden = !status;
+        q('#ulc-netdev-row').hidden = !status;
+        if (document.activeElement !== q('#ulc-netdev-status')) {
+            q('#ulc-netdev-status').value = state.status.netdev_status || 'activity';
+        }
         qa('[data-status-hint]').forEach(hint => {
             hint.hidden = !status;
         });
@@ -786,7 +790,6 @@
 
         q('#ulc-standby-mode').value = status.standby_mode || 'dim';
         q('#ulc-disk-color-mode').value = status.disk_color_mode || 'own';
-        q('#ulc-netdev-status').value = status.netdev_status || 'activity';
         q('#ulc-smart-enabled').checked = status.smart_enabled !== false;
 
         const smartColor = q('#ulc-smart-color');
@@ -815,7 +818,6 @@
             () => api({
                 action: 'status_display',
                 disk_color_mode: q('#ulc-disk-color-mode').value,
-                netdev_status: q('#ulc-netdev-status').value,
                 smart_enabled: q('#ulc-smart-enabled').checked ? '1' : '0',
                 smart_r: smart.r,
                 smart_g: smart.g,
@@ -1158,6 +1160,11 @@
             setRangeFill(standbyLevel);
             q('#ulc-standby-level-value').textContent = `${standbyLevel.value}%`;
         });
+        q('#ulc-netdev-status').addEventListener('change', event => run(
+            () => api({ action: 'netdev_status', value: event.target.value }, true),
+            t('display.netdev_saved')
+        ));
+
         q('#ulc-standby-mode').addEventListener('change', event => {
             standbyLevel.closest('.ulc-inline').classList.toggle('disabled', event.target.value !== 'dim');
         });

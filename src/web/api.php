@@ -321,19 +321,10 @@ if ($method === 'POST') {
             ], 400);
         }
 
-        $netdevStatus = (string)($input['netdev_status'] ?? '');
-
-        if (!in_array($netdevStatus, ['activity', 'link', 'manual'], true)) {
-            respond([
-                'ok' => false,
-                'error' => 'Invalid status display values'
-            ], 400);
-        }
-
         $standbyMode = (string)($input['standby_mode'] ?? '');
         $standbyLevel = filter_var($input['standby_level'] ?? null, FILTER_VALIDATE_INT);
 
-        if (!in_array($standbyMode, ['normal', 'dim', 'off'], true) || $standbyLevel === false || $standbyLevel < 1 || $standbyLevel > 100) {
+        if (!in_array($standbyMode, ['normal', 'dim', 'off', 'pulse'], true) || $standbyLevel === false || $standbyLevel < 1 || $standbyLevel > 100) {
             respond([
                 'ok' => false,
                 'error' => 'Invalid status display values'
@@ -347,12 +338,32 @@ if ($method === 'POST') {
             'standby_mode' => $standbyMode,
             'standby_level' => (string)$standbyLevel,
             'disk_color_mode' => $colorMode,
-            'netdev_status' => $netdevStatus,
             'smart_enabled' => ($input['smart_enabled'] ?? '') === '1' ? '1' : '0',
             'smart_color' => implode(' ', $smartRgb)
         ]);
 
         if (!$saved) {
+            respond([
+                'ok' => false,
+                'error' => CONFIG_FILE . ' is not writable'
+            ], 500);
+        }
+
+        respond(['ok' => true]);
+    }
+
+    // Network LED in status mode: activity, link or manual. The daemon reads it every 5 seconds.
+    if ($action === 'netdev_status') {
+        $netdevStatus = (string)($input['value'] ?? '');
+
+        if (!in_array($netdevStatus, ['activity', 'link', 'manual'], true)) {
+            respond([
+                'ok' => false,
+                'error' => 'Invalid network LED setting'
+            ], 400);
+        }
+
+        if (!save_settings(['netdev_status' => $netdevStatus])) {
             respond([
                 'ok' => false,
                 'error' => CONFIG_FILE . ' is not writable'
