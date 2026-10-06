@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.16.0">
+<!ENTITY version   "0.17.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,10 @@
 >
 
 <CHANGES>
+
+### 0.17.0
+- Disks in standby can pulse slowly in their colour (Drives → Status display → Disks in standby → Pulse slowly)
+- The network LED setting moved to the overview, right below the default mode, and saves on change
 
 ### 0.16.0
 - Status display: the network LED can blink with traffic (as before), only show the link without blinking, or stay manual while the bay LEDs keep showing disk activity (GitHub issue #27)

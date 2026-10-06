@@ -749,13 +749,14 @@ smart_warnings() {
     echo "${out# }"
 }
 
-# Brightness of a spun-down disk: standby_mode normal|dim|off, standby_level in %.
+# Brightness of a spun-down disk: standby_mode normal|dim|off|pulse, standby_level in %.
+# "pulse" keeps the brightness; the bay breathes slowly instead (see daemon_run).
 standby_brightness() {
     local brightness="$1"
     local level
 
     case "$(config_value standby_mode | grep . || echo dim)" in
-        normal) echo "$brightness" ;;
+        normal|pulse) echo "$brightness" ;;
         off) echo 0 ;;
         *)
             level="$(config_value standby_level | grep . || echo 30)"
@@ -864,7 +865,8 @@ log() {
     logger -t ugreen-led-control "$1" 2>/dev/null || echo "$1"
 }
 
-# "steady|R G B|brightness", "breath|R G B|brightness" or "off".
+# "steady|R G B|brightness", "breath|R G B|brightness", "pulse|R G B|brightness"
+# (slow breathing of a disk in standby) or "off".
 show_led() {
     local led="$1"
     local wanted="$2"
@@ -882,6 +884,8 @@ show_led() {
 
     if [ "$mode" = "breath" ]; then
         tool set "$led" breath 1500 1500 >/dev/null 2>&1
+    elif [ "$mode" = "pulse" ]; then
+        tool set "$led" breath 3000 3000 >/dev/null 2>&1
     else
         tool set "$led" on >/dev/null 2>&1
     fi
@@ -912,6 +916,8 @@ daemon_run() {
     local smart_on
     local smart_color
     local temp_mode
+    local standby_mode
+    local look
     local -a devices=()
     local -a applied=()
     local -a counters=()
@@ -944,6 +950,7 @@ daemon_run() {
             smart_on="$(config_value smart_enabled | grep . || echo 1)"
             smart_color="$(config_value smart_color | grep . || echo "$DEFAULT_SMART_COLOR")"
             temp_mode="$(config_value disk_color_mode | grep . || echo own)"
+            standby_mode="$(config_value standby_mode | grep . || echo dim)"
             net_status="$(netdev_status)"
 
             # Every 30 s everything is written again, which also undoes manual writes (Test, effects).
@@ -965,11 +972,15 @@ daemon_run() {
                 fi
 
                 brightness="$(effective_brightness "$(saved_brightness "disk$bay")" "$night")"
+                look="steady"
                 set --
                 if [ -n "$dev" ]; then
                     # shellcheck disable=SC2046
                     set -- $(unraid_disk "$dev")
-                    [ "${3:-0}" = "1" ] && brightness="$(standby_brightness "$brightness")"
+                    if [ "${3:-0}" = "1" ]; then
+                        brightness="$(standby_brightness "$brightness")"
+                        [ "$standby_mode" = "pulse" ] && look="pulse"
+                    fi
                 fi
 
                 # Error > SMART warning > parity check > temperature or own colour.
@@ -984,9 +995,9 @@ daemon_run() {
                     wanted="breath|$sync_color|$brightness"
                 elif [ "$temp_mode" = "temperature" ] && [ "${4:--}" != "-" ]; then
                     # shellcheck disable=SC2046
-                    wanted="steady|$(temp_color "$4" $(temp_limits "${6:-1}" "${7:--}" "${8:--}"))|$brightness"
+                    wanted="$look|$(temp_color "$4" $(temp_limits "${6:-1}" "${7:--}" "${8:--}"))|$brightness"
                 else
-                    wanted="steady|$(saved_color "disk$bay" "$DEFAULT_DISK_COLOR")|$brightness"
+                    wanted="$look|$(saved_color "disk$bay" "$DEFAULT_DISK_COLOR")|$brightness"
                 fi
 
                 if [ "${applied[bay]:-}" != "$wanted" ]; then
@@ -1043,9 +1054,9 @@ daemon_run() {
         for bay in $(seq 1 "$bays"); do
             dev="${devices[bay]:-}"
             [ -n "$dev" ] || continue
-            # Dark, breathing during a parity check, or being identified: no activity blink.
+            # Dark, breathing during a parity check or in standby, or being identified: no activity blink.
             case "${applied[bay]:-}" in
-                off|breath\|*|identify) continue ;;
+                off|breath\|*|pulse\|*|identify) continue ;;
             esac
             [ -e "${IDENTIFY_PREFIX}disk$bay" ] && continue
 

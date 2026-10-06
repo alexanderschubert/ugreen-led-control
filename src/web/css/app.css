@@ -441,6 +441,10 @@
     align-items: center;
 }
 
+.ulc-field-row[hidden] {
+    display: none;
+}
+
 .ulc-field-row label {
     font-weight: 600;
 }
