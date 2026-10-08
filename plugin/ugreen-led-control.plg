@@ -143,6 +143,7 @@
 <!-- Static binary built by the "Tag release" workflow and attached to the release -->
 <FILE Name="&srcDIR;/backend/ugreen-led-i2c">
 <URL>&releaseURL;/ugreen-led-i2c</URL>
+<MD5>ce7cc379368408d0c2abde77d6a04ac7</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/api.php">
