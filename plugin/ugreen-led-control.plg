@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.17.0">
+<!ENTITY version   "0.17.1">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,10 @@
 >
 
 <CHANGES>
+
+### 0.17.1
+- Fix: LEDs could be missing after a reboot with "no SMBus I801 adapter found" (DXP8800 Plus, GitHub issue #30); the plugin now loads the Intel SMBus driver itself and waits for the adapter
+- New `ugreen-led-ctl smbus` shows the adapter or the kernel messages why it is missing
 
 ### 0.17.0
 - Disks in standby can pulse slowly in their colour (Drives → Status display → Disks in standby → Pulse slowly)
@@ -209,6 +213,8 @@ if [ -x "${PLUGIN_DIR}/backend/ugreen-led-ctl" ]; then
     "${PLUGIN_DIR}/backend/ugreen-led-ctl" daemon stop >/dev/null 2>&1
 fi
 
+# The Intel SMBus driver is not always loaded at boot (GitHub issue #30).
+modprobe i2c_i801 2>/dev/null
 modprobe i2c-dev
 
 # Versions up to 0.5.1 used the led_ugreen kernel module; it would hold address 0x3a.
@@ -251,6 +257,7 @@ if "${PLUGIN_DIR}/backend/ugreen-led-i2c" probe >/dev/null 2>&1; then
     fi
 else
     log "WARNING: The LED controller does not answer on the SMBus; no LEDs available."
+    "${PLUGIN_DIR}/backend/ugreen-led-ctl" smbus 2>&1 | sed 's/^/[UGREEN LED Control] /'
 fi
 
 #

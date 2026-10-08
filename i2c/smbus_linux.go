@@ -70,7 +70,7 @@ func findBus() (string, error) {
 		return path, nil
 	}
 
-	return "", errors.New("no SMBus I801 adapter found")
+	return "", errors.New("no SMBus I801 adapter found; load the i2c_i801 module (modprobe i2c_i801) and check dmesg | grep -i i801")
 }
 
 func openBus(path string, force bool) (*bus, error) {

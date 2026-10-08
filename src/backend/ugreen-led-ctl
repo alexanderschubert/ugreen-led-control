@@ -68,6 +68,7 @@ Usage:
   ugreen-led-ctl schedule [--force]   (night mode and Unraid alerts; run every minute by cron)
   ugreen-led-ctl alerts [--force]     (Unraid alerts on the power LED only)
   ugreen-led-ctl fx start|stop|restart|status   (rainbow/temperature from leds.cfg)
+  ugreen-led-ctl smbus                           (load the SMBus driver, show the adapter or why it is missing)
   ugreen-led-ctl identify <diskN> [seconds]      (blink a bay white, default 30 s)
   ugreen-led-ctl identify-stop <diskN>
   ugreen-led-ctl on <led>
@@ -109,6 +110,29 @@ is_byte() {
 
 tool() {
     "$LED_TOOL" "$@"
+}
+
+has_smbus() {
+    grep -qs '^SMBus I801 adapter' /sys/bus/i2c/devices/i2c-*/name
+}
+
+# The LED controller sits on the Intel SMBus. Unraid usually loads its driver
+# (i2c_i801) at boot, but not always (GitHub issue #30), so load it here and
+# give udev a moment to register the adapter. i2c-dev makes it /dev/i2c-N.
+ensure_smbus() {
+    local i
+
+    modprobe -q i2c-dev 2>/dev/null
+
+    # Already loaded without an adapter: nothing to wait for (dmesg tells why).
+    grep -q '^i2c_i801 ' /proc/modules 2>/dev/null && { has_smbus; return; }
+    modprobe -q i2c_i801 2>/dev/null || return 1
+
+    for i in $(seq 1 30); do
+        has_smbus && return 0
+        sleep 0.1
+    done
+    return 1
 }
 
 # "<name> <mode> <brightness> <R> <G> <B> <on_ms> <off_ms>"
@@ -1301,7 +1325,24 @@ need() {
     }
 }
 
+# Every command except help talks to the controller (tests bring their own tool).
+if [ -z "${UGREEN_LED_I2C:-}" ]; then
+    case "${1:-help}" in
+        help|-h|--help) ;;
+        *) has_smbus || ensure_smbus ;;
+    esac
+fi
+
 case "${1:-help}" in
+    smbus)
+        if ensure_smbus; then
+            echo "SMBus adapter: $(grep -H '^SMBus I801' /sys/bus/i2c/devices/i2c-*/name)"
+        else
+            echo "ERROR: No SMBus I801 adapter after loading i2c_i801. Kernel messages:" >&2
+            dmesg | grep -iE 'i801|smbus' | tail -n 10 >&2
+            exit 1
+        fi
+        ;;
     status) status ;;
     list) list_leds ;;
     all) all_leds ;;
