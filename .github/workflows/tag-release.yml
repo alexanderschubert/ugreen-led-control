@@ -1,8 +1,9 @@
 name: Tag release
 
 # The .plg downloads its files from the tag v<version> and the ugreen-led-i2c
-# binary from the release of that tag, so both have to exist as soon as a new
-# version reaches main.
+# binary from the release of that tag, each checked against its <MD5>. So the
+# binary is built and checked first, then the tag and the release are made;
+# an existing release asset is never replaced.
 on:
   push:
     branches: [main]
@@ -11,6 +12,9 @@ on:
 
 permissions:
   contents: write
+
+env:
+  GO_VERSION: '1.22.12'
 
 jobs:
   release:
@@ -30,6 +34,19 @@ jobs:
           fi
           echo "tag=v${version}" >> "$GITHUB_OUTPUT"
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Build ugreen-led-i2c
+        working-directory: i2c
+        run: |
+          go test ./...
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -ldflags "-s -w" -o ugreen-led-i2c .
+
+      - name: Check the MD5 of every download in the .plg
+        run: python3 scripts/plg-hashes.py plugin/ugreen-led-control.plg --binary ugreen-led-i2c=i2c/ugreen-led-i2c --check
+
       - name: Create the tag
         env:
           TAG: ${{ steps.version.outputs.tag }}
@@ -45,26 +62,15 @@ jobs:
           git push origin "${TAG}"
           echo "Created ${TAG}."
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: i2c/go.mod
-
-      - name: Build ugreen-led-i2c from the tag
-        env:
-          TAG: ${{ steps.version.outputs.tag }}
-        run: |
-          git checkout "${TAG}"
-          cd i2c
-          go test ./...
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o ugreen-led-i2c .
-
       - name: Create the release with the binary
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
         run: |
-          if gh release view "${TAG}" >/dev/null 2>&1; then
-            gh release upload "${TAG}" i2c/ugreen-led-i2c --clobber
-          else
+          if ! gh release view "${TAG}" >/dev/null 2>&1; then
             gh release create "${TAG}" i2c/ugreen-led-i2c --title "UGREEN LED Control ${TAG#v}" --notes "Plugin version ${TAG#v}. Install: https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/main/plugin/ugreen-led-control.plg"
+          elif gh release view "${TAG}" --json assets -q '.assets[].name' | grep -qx ugreen-led-i2c; then
+            echo "${TAG} already has ugreen-led-i2c; it stays as it is (installs check its MD5)."
+          else
+            gh release upload "${TAG}" i2c/ugreen-led-i2c
           fi
