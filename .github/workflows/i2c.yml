@@ -3,31 +3,39 @@ name: I2C tool
 on:
   push:
     branches: [main]
-    paths: [i2c/**, .github/workflows/i2c.yml]
+    paths: [i2c/**, plugin/**, src/**, scripts/plg-hashes.py, .github/workflows/i2c.yml]
   pull_request:
-    paths: [i2c/**, .github/workflows/i2c.yml]
+    paths: [i2c/**, plugin/**, src/**, scripts/plg-hashes.py, .github/workflows/i2c.yml]
+
+# Same Go and flags as "Tag release": the build is reproducible, so the MD5 in
+# the .plg can be checked here before the release binary exists.
+env:
+  GO_VERSION: '1.22.12'
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: i2c
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
         with:
-          go-version-file: i2c/go.mod
+          go-version: ${{ env.GO_VERSION }}
 
-      - run: gofmt -l . | tee /dev/stderr | (! read)
-      - run: go vet ./...
-      - run: go test ./...
+      - working-directory: i2c
+        run: |
+          gofmt -l . | tee /dev/stderr | (! read)
+          go vet ./...
+          go test ./...
 
       # Static binary: runs on every Unraid kernel without libraries.
-      - run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o ugreen-led-i2c .
+      - working-directory: i2c
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -ldflags "-s -w" -o ugreen-led-i2c .
 
       - uses: actions/upload-artifact@v4
         with:
           name: ugreen-led-i2c
           path: i2c/ugreen-led-i2c
+
+      - name: Check the MD5 of every download in the .plg
+        run: python3 scripts/plg-hashes.py plugin/ugreen-led-control.plg --binary ugreen-led-i2c=i2c/ugreen-led-i2c --check

@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.17.1">
+<!ENTITY version   "0.17.2">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,10 @@
 >
 
 <CHANGES>
+
+### 0.17.2
+- Every download is checked against its MD5, so the plugin manager only installs the files of this version (Community Applications review)
+- The ugreen-led-i2c binary is built reproducibly; nothing changes in how it works
 
 ### 0.17.1
 - Fix: LEDs could be missing after a reboot with "no SMBus I801 adapter found" (DXP8800 Plus, GitHub issue #30); the plugin now loads the Intel SMBus driver itself and waits for the adapter
@@ -133,51 +137,63 @@
 
 <FILE Name="&srcDIR;/backend/ugreen-led-ctl">
 <URL>&gitURL;/src/backend/ugreen-led-ctl</URL>
+<MD5>d57c63afbba021648b830e509122afcb</MD5>
 </FILE>
 
 <!-- Static binary built by the "Tag release" workflow and attached to the release -->
 <FILE Name="&srcDIR;/backend/ugreen-led-i2c">
 <URL>&releaseURL;/ugreen-led-i2c</URL>
+<MD5>538e96c66853849de3fdedd8b32f667d</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/api.php">
 <URL>&gitURL;/src/web/api.php</URL>
+<MD5>79ecfba244ebc8dac1b0c45786bc8415</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDControl.page">
 <URL>&gitURL;/src/web/UGREENLEDControl.page</URL>
+<MD5>7792180f4633b99b58327c8b125d3c5b</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDDashboard.page">
 <URL>&gitURL;/src/web/UGREENLEDDashboard.page</URL>
+<MD5>00c8f28f801b75ec92a1bd8b7be5a0f6</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/images/ugreen-led-control.png">
 <URL>&gitURL;/src/web/images/ugreen-led-control.png</URL>
+<MD5>5bc23f73dfcf53b131b8444d531391b5</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/icons/ugreen-led-control.png">
 <URL>&gitURL;/src/web/icons/ugreen-led-control.png</URL>
+<MD5>c066fd047a60cd66fd6e0c118a15b38b</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/include/lang.php">
 <URL>&gitURL;/src/web/include/lang.php</URL>
+<MD5>f036c28a9c00a6ec999f2c5926378ff4</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/css/app.css">
 <URL>&gitURL;/src/web/css/app.css</URL>
+<MD5>0d4ea0ff5d0e699c2d4d525d37512e1d</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/i18n.js">
 <URL>&gitURL;/src/web/js/i18n.js</URL>
+<MD5>8a2da3d08fa839422c7d099344a65cd3</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/app.js">
 <URL>&gitURL;/src/web/js/app.js</URL>
+<MD5>42d26a28e5b4f4cffede36b71fe93327</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/dash.js">
 <URL>&gitURL;/src/web/js/dash.js</URL>
+<MD5>8f4dfea3b276ea83b6ada96ea6ace696</MD5>
 </FILE>
 
 <!-- ========================================================= -->
