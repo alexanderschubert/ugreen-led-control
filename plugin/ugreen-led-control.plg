@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.18.0">
+<!ENTITY version   "0.19.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.19.0
+- Light colour scheme: Settings → System → Appearance offers Dark, Light or "Same as Unraid" (follows your Unraid theme); the dashboard tile follows it too
 
 ### 0.18.0
 - Every setting saves on change: status display, night mode and Unraid alerts no longer need a Save button
@@ -156,17 +159,17 @@
 
 <FILE Name="&srcDIR;/api.php">
 <URL>&gitURL;/src/web/api.php</URL>
-<MD5>56f52a4184aab68002d5990848d108ab</MD5>
+<MD5>64aaf12b6972097c4fc9ac4c698c033a</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDControl.page">
 <URL>&gitURL;/src/web/UGREENLEDControl.page</URL>
-<MD5>87d1d893b26d24f3dfec7b1b74b36af5</MD5>
+<MD5>b2d596a5e035fdea023afce518372990</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDDashboard.page">
 <URL>&gitURL;/src/web/UGREENLEDDashboard.page</URL>
-<MD5>00c8f28f801b75ec92a1bd8b7be5a0f6</MD5>
+<MD5>68a9f2b63eb69572301f6ef4bdd2d415</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/images/ugreen-led-control.png">
@@ -181,27 +184,27 @@
 
 <FILE Name="&srcDIR;/include/lang.php">
 <URL>&gitURL;/src/web/include/lang.php</URL>
-<MD5>fb7e91ada4aed03bae1b405c170caef4</MD5>
+<MD5>aaa486b51cae86aaa919ac61a0f5930d</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/css/app.css">
 <URL>&gitURL;/src/web/css/app.css</URL>
-<MD5>eddfb9fc77551b3cc97f60caa5ff1969</MD5>
+<MD5>0a17373a06ed68fe29c75626e7f3e6ad</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/i18n.js">
 <URL>&gitURL;/src/web/js/i18n.js</URL>
-<MD5>96e69a0b01af1af99aacc2f1512b6294</MD5>
+<MD5>d563a5ec5df209124d6c99ea251b742f</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/app.js">
 <URL>&gitURL;/src/web/js/app.js</URL>
-<MD5>2493d42f4a4c1beb68c60d0e40c7b32d</MD5>
+<MD5>a3f1ed69c4cde38a1f62e17bc436311c</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/dash.js">
 <URL>&gitURL;/src/web/js/dash.js</URL>
-<MD5>61fb7d96006a0d0d4a1e12ae08bea254</MD5>
+<MD5>6fbac70d866c2672cb31c949eee8b015</MD5>
 </FILE>
 
 <!-- ========================================================= -->

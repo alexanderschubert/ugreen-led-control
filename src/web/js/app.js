@@ -13,6 +13,22 @@
     const t = (key, vars = {}) => String(TEXTS[LANG]?.[key] ?? TEXTS.en[key] ?? TEXTS.de[key] ?? key)
         .replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ''));
 
+    // "auto" follows Unraid: light when the page behind the plugin is light.
+    function resolveTheme(setting) {
+        if (setting === 'light' || setting === 'dark') return setting;
+
+        for (let el = document.body; el; el = el.parentElement) {
+            const match = getComputedStyle(el).backgroundColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/);
+            if (match && (match[4] === undefined || Number(match[4]) > 0.5)) {
+                const [r, g, b] = [match[1], match[2], match[3]].map(Number);
+                return (0.299 * r + 0.587 * g + 0.114 * b) > 140 ? 'light' : 'dark';
+            }
+        }
+        return 'dark';
+    }
+
+    root.dataset.theme = resolveTheme(window.UGREEN_LED_THEME);
+
     const q = selector => root.querySelector(selector);
     const qa = selector => [...root.querySelectorAll(selector)];
     const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -1225,6 +1241,21 @@
 
             const ack = event.target.closest('[data-smart-ack]');
             if (ack) ackSmart(ack.dataset.smartAck);
+        });
+
+        const theme = q('#ulc-theme');
+        theme.value = window.UGREEN_LED_THEME || 'dark';
+
+        theme.addEventListener('change', async () => {
+            root.dataset.theme = resolveTheme(theme.value);
+            window.UGREEN_LED_THEME = theme.value;
+
+            try {
+                await api({ action: 'theme', value: theme.value }, true);
+                toast(t('theme.saved'));
+            } catch (error) {
+                toast(error.message, 'error');
+            }
         });
 
         const language = q('#ulc-language');

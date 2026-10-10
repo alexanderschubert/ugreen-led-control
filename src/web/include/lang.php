@@ -16,3 +16,14 @@ function ulc_language(): array
 
     return [$setting === 'auto' ? $unraid : $setting, $setting];
 }
+
+// Colour theme of the settings page and the dashboard tile: "dark" (default),
+// "light", or "auto" (decided in the browser from the page's own background).
+function ulc_theme(): string
+{
+    $settings = is_file('/boot/config/plugins/ugreen-led-control/leds.cfg')
+        ? (parse_ini_file('/boot/config/plugins/ugreen-led-control/leds.cfg') ?: [])
+        : [];
+
+    return in_array($settings['ui_theme'] ?? '', ['light', 'auto'], true) ? $settings['ui_theme'] : 'dark';
+}
