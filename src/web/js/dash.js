@@ -10,6 +10,20 @@
     const t = (key, vars = {}) => String(TEXTS[LANG]?.[key] ?? TEXTS.en[key] ?? TEXTS.de[key] ?? key)
         .replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ''));
 
+    // "auto" follows Unraid: light when the page behind the plugin is light.
+    function resolveTheme(setting) {
+        if (setting === 'light' || setting === 'dark') return setting;
+
+        for (let el = document.body; el; el = el.parentElement) {
+            const match = getComputedStyle(el).backgroundColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/);
+            if (match && (match[4] === undefined || Number(match[4]) > 0.5)) {
+                const [r, g, b] = [match[1], match[2], match[3]].map(Number);
+                return (0.299 * r + 0.587 * g + 0.114 * b) > 140 ? 'light' : 'dark';
+            }
+        }
+        return 'dark';
+    }
+
     const state = { status: {}, leds: {}, bays: [], layout: '' };
 
     async function get(action) {
@@ -146,6 +160,8 @@
     async function init() {
         const root = document.getElementById('ulc-dash');
         if (!root) return;
+
+        root.dataset.theme = resolveTheme(window.UGREEN_LED_THEME);
 
         const settings = document.getElementById('ulc-dash-settings');
         if (settings) settings.title = t('dash.settings');
