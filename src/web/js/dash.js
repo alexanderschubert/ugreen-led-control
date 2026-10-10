@@ -162,6 +162,7 @@
         if (!root) return;
 
         root.dataset.theme = resolveTheme(window.UGREEN_LED_THEME);
+        root.dataset.size = window.UGREEN_LED_DASH_SIZE === 'full' ? 'full' : 'compact';
 
         const settings = document.getElementById('ulc-dash-settings');
         if (settings) settings.title = t('dash.settings');

@@ -17,6 +17,17 @@ function ulc_language(): array
     return [$setting === 'auto' ? $unraid : $setting, $setting];
 }
 
+// Dashboard tile: "compact" (default: the LEDs, with a state only for problems)
+// or "full" (case picture with every bay's temperature or state).
+function ulc_dash_size(): string
+{
+    $settings = is_file('/boot/config/plugins/ugreen-led-control/leds.cfg')
+        ? (parse_ini_file('/boot/config/plugins/ugreen-led-control/leds.cfg') ?: [])
+        : [];
+
+    return ($settings['ui_dash'] ?? '') === 'full' ? 'full' : 'compact';
+}
+
 // Colour theme of the settings page and the dashboard tile: "dark" (default),
 // "light", or "auto" (decided in the browser from the page's own background).
 function ulc_theme(): string

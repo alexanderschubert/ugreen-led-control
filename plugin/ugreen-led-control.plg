@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.19.0">
+<!ENTITY version   "0.19.1">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.19.1
+- Dashboard tile is compact now: slim bays with the number and the LED, a state only for an error or SMART warning (temperatures are on Unraid's own storage tiles); "Dashboard tile → With temperatures" in System → Appearance brings the old view back
 
 ### 0.19.0
 - Light colour scheme: Settings → System → Appearance offers Dark, Light or "Same as Unraid" (follows your Unraid theme); the dashboard tile follows it too
@@ -159,17 +162,17 @@
 
 <FILE Name="&srcDIR;/api.php">
 <URL>&gitURL;/src/web/api.php</URL>
-<MD5>64aaf12b6972097c4fc9ac4c698c033a</MD5>
+<MD5>c1693cf7be4e602910fc6e8efde9e0fe</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDControl.page">
 <URL>&gitURL;/src/web/UGREENLEDControl.page</URL>
-<MD5>b2d596a5e035fdea023afce518372990</MD5>
+<MD5>7e1bb028e5350974cb532219fe9e70dc</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDDashboard.page">
 <URL>&gitURL;/src/web/UGREENLEDDashboard.page</URL>
-<MD5>68a9f2b63eb69572301f6ef4bdd2d415</MD5>
+<MD5>903dc5c349e2b11e4597fbdd76f03adf</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/images/ugreen-led-control.png">
@@ -184,27 +187,27 @@
 
 <FILE Name="&srcDIR;/include/lang.php">
 <URL>&gitURL;/src/web/include/lang.php</URL>
-<MD5>aaa486b51cae86aaa919ac61a0f5930d</MD5>
+<MD5>d5606ea1e892b749a50a0b375bb2e8e3</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/css/app.css">
 <URL>&gitURL;/src/web/css/app.css</URL>
-<MD5>0a17373a06ed68fe29c75626e7f3e6ad</MD5>
+<MD5>03ab995dce690da0dce67cd7e43b13c9</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/i18n.js">
 <URL>&gitURL;/src/web/js/i18n.js</URL>
-<MD5>d563a5ec5df209124d6c99ea251b742f</MD5>
+<MD5>e168d73e15e80d4ceda01aa74ee9a071</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/app.js">
 <URL>&gitURL;/src/web/js/app.js</URL>
-<MD5>a3f1ed69c4cde38a1f62e17bc436311c</MD5>
+<MD5>0fbe8167249d02afcda85b1beae4c113</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/dash.js">
 <URL>&gitURL;/src/web/js/dash.js</URL>
-<MD5>6fbac70d866c2672cb31c949eee8b015</MD5>
+<MD5>dbdd7d3542a70925dabe2ff3d7c7832e</MD5>
 </FILE>
 
 <!-- ========================================================= -->

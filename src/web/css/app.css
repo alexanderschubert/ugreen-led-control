@@ -1144,6 +1144,45 @@
     font-size: 15px;
 }
 
+/* Compact (default): slim bays with the number and the LED; a state is only
+ * written out for an error or SMART warning. Temperatures are on Unraid's own
+ * storage tiles. */
+.ulc-dash[data-size="compact"] .ulc-nas {
+    padding: 5px 5px 3px;
+}
+
+.ulc-dash[data-size="compact"] .ulc-nas-bays {
+    gap: 5px;
+    padding: 5px;
+}
+
+.ulc-dash[data-size="compact"] .ulc-bay {
+    grid-template-rows: auto auto auto;
+    aspect-ratio: auto;
+    padding: 7px 0 8px;
+    gap: 5px;
+}
+
+.ulc-dash[data-size="compact"] .ulc-bay-knob {
+    display: none;
+}
+
+.ulc-dash[data-size="compact"] .ulc-bay-info:not(.warning):not(.error) {
+    display: none;
+}
+
+.ulc-dash[data-size="compact"] .ulc-bay-info {
+    font-size: clamp(8px, 15cqi, 12px);
+}
+
+.ulc-dash[data-size="compact"] .ulc-nas-front {
+    padding: 6px 8px 1px;
+}
+
+.ulc-dash[data-size="compact"] .ulc-nas-brand {
+    display: none;
+}
+
 /* Same footprint as the 32 px font icons of Unraid's own tiles. */
 .ulc-dash-icon {
     width: 32px;

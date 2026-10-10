@@ -11,6 +11,7 @@ $ulc_var = is_file('/var/local/emhttp/var.ini')
 require_once '/usr/local/emhttp/plugins/ugreen-led-control/include/lang.php';
 [$ulc_lang, $ulc_lang_setting] = ulc_language();
 $ulc_theme = ulc_theme();
+$ulc_dash_size = ulc_dash_size();
 
 $ulc_version = preg_match(
     '/ENTITY\s+version\s+"([^"]+)"/',
@@ -24,6 +25,7 @@ window.UGREEN_LED_CSRF_TOKEN = <?= json_encode($ulc_var['csrf_token'] ?? '') ?>;
 window.UGREEN_LED_VERSION = <?= json_encode($ulc_version) ?>;
 window.UGREEN_LED_LANG = <?= json_encode($ulc_lang) ?>;
 window.UGREEN_LED_THEME = <?= json_encode($ulc_theme) ?>;
+window.UGREEN_LED_DASH_SIZE = <?= json_encode($ulc_dash_size) ?>;
 window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
 </script>
 
@@ -401,15 +403,21 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
     </article>
     <article class="ulc-card">
         <h2 data-i18n="theme.title">Darstellung</h2>
-        <div class="ulc-field-row">
+        <div class="ulc-form">
             <label for="ulc-theme" data-i18n="theme.label">Farbschema</label>
             <select id="ulc-theme">
                 <option value="dark" data-i18n="theme.dark">Dunkel</option>
                 <option value="light" data-i18n="theme.light">Hell</option>
                 <option value="auto" data-i18n="theme.auto">Wie Unraid</option>
             </select>
+
+            <label for="ulc-dash-size" data-i18n="theme.dash">Dashboard-Kachel</label>
+            <select id="ulc-dash-size">
+                <option value="compact" data-i18n="theme.dash_compact">Kompakt</option>
+                <option value="full" data-i18n="theme.dash_full">Mit Temperaturen</option>
+            </select>
         </div>
-        <p class="ulc-hint" data-i18n="theme.hint">„Wie Unraid“ richtet sich nach dem Farbschema deiner Unraid-Oberfläche (hell oder dunkel).</p>
+        <p class="ulc-hint" data-i18n="theme.hint">„Wie Unraid“ richtet sich nach dem Farbschema deiner Unraid-Oberfläche (hell oder dunkel). Die kompakte Kachel zeigt nur die LEDs; ein Schacht nennt seinen Zustand nur bei Fehler oder SMART-Warnung.</p>
     </article>
 </section>
 

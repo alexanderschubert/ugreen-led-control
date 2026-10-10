@@ -1258,6 +1258,13 @@
             }
         });
 
+        const dashSize = q('#ulc-dash-size');
+        dashSize.value = window.UGREEN_LED_DASH_SIZE === 'full' ? 'full' : 'compact';
+        dashSize.addEventListener('change', () => run(
+            () => api({ action: 'dash_size', value: dashSize.value }, true),
+            t('theme.dash_saved')
+        ));
+
         const language = q('#ulc-language');
 
         // A language shows up once it has translations.
