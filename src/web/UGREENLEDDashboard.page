@@ -10,6 +10,7 @@ Cond="version_compare(parse_ini_file('/etc/unraid-version')['version'], '6.12.0'
 require_once '/usr/local/emhttp/plugins/ugreen-led-control/include/lang.php';
 [$ulc_lang] = ulc_language();
 $ulc_theme = ulc_theme();
+$ulc_dash_size = ulc_dash_size();
 
 $ulc_theme_attr = $ulc_theme === 'light' ? 'light' : 'dark';
 
@@ -29,7 +30,7 @@ $mytiles['ugreen-led-control']['column2'] = <<<EOT
 </span>
 </td></tr>
 <tr><td>
-<div class="ulc ulc-dash" id="ulc-dash" data-theme="{$ulc_theme_attr}"><div class="ulc-nas" data-nas></div></div>
+<div class="ulc ulc-dash" id="ulc-dash" data-theme="{$ulc_theme_attr}" data-size="{$ulc_dash_size}"><div class="ulc-nas" data-nas></div></div>
 </td></tr>
 </tbody>
 EOT;
@@ -38,6 +39,7 @@ EOT;
 <script>
 window.UGREEN_LED_LANG = <?= json_encode($ulc_lang) ?>;
 window.UGREEN_LED_THEME = <?= json_encode($ulc_theme) ?>;
+window.UGREEN_LED_DASH_SIZE = <?= json_encode($ulc_dash_size) ?>;
 </script>
 <script src="<?autov('/plugins/ugreen-led-control/js/i18n.js')?>"></script>
 <script src="<?autov('/plugins/ugreen-led-control/js/dash.js')?>"></script>
