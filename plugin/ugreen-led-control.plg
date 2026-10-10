@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.17.2">
+<!ENTITY version   "0.17.3">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.17.3
+- Fix: a colour typed as a hex value now shows in its preview swatch right away (GitHub issue #30)
 
 ### 0.17.2
 - Every download is checked against its MD5, so the plugin manager only installs the files of this version (Community Applications review)
@@ -188,7 +191,7 @@
 
 <FILE Name="&srcDIR;/js/app.js">
 <URL>&gitURL;/src/web/js/app.js</URL>
-<MD5>42d26a28e5b4f4cffede36b71fe93327</MD5>
+<MD5>6e9fdf923a12f1fbd91e7131046db307</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/dash.js">
