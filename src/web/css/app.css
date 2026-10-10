@@ -441,6 +441,11 @@
     align-items: center;
 }
 
+.ulc-night-note {
+    margin: -4px 0 14px;
+    font-size: 12px;
+}
+
 .ulc-field-row[hidden] {
     display: none;
 }

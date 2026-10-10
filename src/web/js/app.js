@@ -6,11 +6,11 @@
 
     if (!root) return;
 
-    const LANG = window.UGREEN_LED_LANG === 'en' ? 'en' : 'de';
-    const TEXTS = window.ULC_I18N || { de: {}, en: {} };
+    const LANG = ['de', 'en', 'es'].includes(window.UGREEN_LED_LANG) ? window.UGREEN_LED_LANG : 'en';
+    const TEXTS = window.ULC_I18N || { de: {}, en: {}, es: {} };
 
-    // t('led.bay', { n: 2 }) -> "Schacht 2" / "Bay 2"; German fills gaps in other languages.
-    const t = (key, vars = {}) => String(TEXTS[LANG][key] ?? TEXTS.de[key] ?? key)
+    // t('led.bay', { n: 2 }) -> "Schacht 2" / "Bay 2"; English fills gaps in other languages.
+    const t = (key, vars = {}) => String(TEXTS[LANG]?.[key] ?? TEXTS.en[key] ?? TEXTS.de[key] ?? key)
         .replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ''));
 
     const q = selector => root.querySelector(selector);
@@ -208,7 +208,7 @@
 
         if (!response.ok || data.ok === false) {
             // Known api.php messages are translated by their English text.
-            const message = data.error && TEXTS[LANG][`api.${data.error}`];
+            const message = data.error && (TEXTS[LANG]?.[`api.${data.error}`] ?? TEXTS.en[`api.${data.error}`]);
             throw new Error(message || data.error || t('error.api', { status: response.status }));
         }
 
@@ -409,9 +409,22 @@
         element.title = `${ledLabel(led)}: ${s.color.toUpperCase()}, ${Math.round(s.brightness / 2.55)} %`;
     }
 
+    // Brightness 0-255 to show for an LED: at night the saved day value, since
+    // the LED itself is dimmed (or off) by night mode.
+    function dayLevel(led) {
+        const saved = state.status.saved_brightness?.[led];
+        return state.status.night && saved != null ? saved : state.leds[led]?.brightness || 0;
+    }
+
     function renderGeneral() {
-        const values = state.order.map(led => state.leds[led]?.brightness || 0);
+        const values = state.order.map(dayLevel);
         const max = Math.max(0, ...values);
+        const note = q('#ulc-night-note');
+
+        note.hidden = !state.status.night;
+        if (state.status.night) {
+            note.textContent = t(state.schedule?.action === 'off' ? 'night.note_off' : 'night.note_dim', { time: state.schedule?.end || '' });
+        }
 
         q('#ulc-enabled').checked = max > 0;
 
@@ -560,7 +573,7 @@
             setColorInput(row, s.color);
 
             const range = row.querySelector('[data-brightness]');
-            range.value = Math.round(s.brightness / 2.55);
+            range.value = Math.round(dayLevel(led) / 2.55);
             setRangeFill(range);
 
             effect.value = currentEffect([led]);
@@ -576,7 +589,7 @@
             return;
         }
 
-        const card = q('#ulc-night-save').closest('.ulc-card');
+        const card = q('#ulc-night-card');
         if (!card.contains(document.activeElement)) {
             q('#ulc-night-enabled').checked = state.schedule.enabled;
             q('#ulc-night-start').value = state.schedule.start;
@@ -590,6 +603,7 @@
         }
 
         renderNight();
+        renderGeneral(); // its night note names the end time
     }
 
     function renderNight() {
@@ -779,7 +793,7 @@
             sync.textContent = t(`sync.${status.sync_action}`, { percent: status.sync_percent });
         }
 
-        const card = q('#ulc-display-save').closest('.ulc-card');
+        const card = q('#ulc-display-card');
         if (card.contains(document.activeElement)) return;
 
         q('#ulc-sync-enabled').checked = status.sync_enabled !== false;
@@ -858,7 +872,7 @@
 
     function renderAlerts() {
         const status = state.status;
-        const card = q('#ulc-alert-save').closest('.ulc-card');
+        const card = q('#ulc-alert-card');
 
         q('#ulc-alert-badge').hidden = !status.alert_active;
 
@@ -1095,6 +1109,26 @@
      * ---------------------------------------------------------
      */
 
+    // Saves a settings card on every committed change; changes made while a save
+    // is running are saved right after it.
+    function autoSave(card, save) {
+        let running = null;
+        let again = false;
+
+        card.addEventListener('change', async () => {
+            if (running) {
+                again = true;
+                return;
+            }
+            do {
+                again = false;
+                running = save();
+                await running;
+            } while (again);
+            running = null;
+        });
+    }
+
     function bindColorInputs(container, applyFor) {
         container.addEventListener('input', event => {
             const input = event.target;
@@ -1162,11 +1196,14 @@
 
         q('#ulc-mode').addEventListener('change', event => setMode(event.target.value));
 
-        // The alert colour is only saved with the button, not on every pick.
+        // Like everything else on the page, these cards save every change at once
+        // (a range when it is let go, a colour when it is picked or typed).
         bindColorInputs(q('#ulc-alert-color'), () => {});
         bindColorInputs(q('#ulc-sync-color'), () => {});
         bindColorInputs(q('#ulc-smart-color'), () => {});
-        q('#ulc-display-save').addEventListener('click', saveDisplay);
+        autoSave(q('#ulc-display-card'), saveDisplay);
+        autoSave(q('#ulc-alert-card'), saveAlerts);
+        autoSave(q('#ulc-night-card'), saveSchedule);
 
         const standbyLevel = q('#ulc-standby-level');
         standbyLevel.addEventListener('input', () => {
@@ -1181,7 +1218,6 @@
         q('#ulc-standby-mode').addEventListener('change', event => {
             standbyLevel.closest('.ulc-inline').classList.toggle('disabled', event.target.value !== 'dim');
         });
-        q('#ulc-alert-save').addEventListener('click', saveAlerts);
 
         q('#ulc-bays').addEventListener('click', event => {
             const button = event.target.closest('[data-identify]');
@@ -1192,6 +1228,11 @@
         });
 
         const language = q('#ulc-language');
+
+        // A language shows up once it has translations.
+        [...language.options].forEach(option => {
+            if (option.value !== 'auto' && !Object.keys(TEXTS[option.value] || {}).length) option.remove();
+        });
         language.value = window.UGREEN_LED_LANG_SETTING || 'auto';
 
         // The page is built in one language, so a new one needs a reload.
@@ -1214,7 +1255,6 @@
         });
 
         q('#ulc-night-action').addEventListener('change', renderNight);
-        q('#ulc-night-save').addEventListener('click', saveSchedule);
 
         /* Colours */
 

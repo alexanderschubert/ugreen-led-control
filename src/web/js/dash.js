@@ -4,10 +4,10 @@
     'use strict';
 
     const API = '/plugins/ugreen-led-control/api.php';
-    const LANG = window.UGREEN_LED_LANG === 'en' ? 'en' : 'de';
-    const TEXTS = window.ULC_I18N || { de: {}, en: {} };
+    const LANG = ['de', 'en', 'es'].includes(window.UGREEN_LED_LANG) ? window.UGREEN_LED_LANG : 'en';
+    const TEXTS = window.ULC_I18N || { de: {}, en: {}, es: {} };
 
-    const t = (key, vars = {}) => String(TEXTS[LANG][key] ?? TEXTS.de[key] ?? key)
+    const t = (key, vars = {}) => String(TEXTS[LANG]?.[key] ?? TEXTS.en[key] ?? TEXTS.de[key] ?? key)
         .replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ''));
 
     const state = { status: {}, leds: {}, bays: [], layout: '' };

@@ -44,6 +44,9 @@ function run_backend(array $args): array
 // Saved per-LED settings, restored at boot by `ugreen-led-ctl apply`.
 const CONFIG_FILE = '/boot/config/plugins/ugreen-led-control/leds.cfg';
 
+// "day" or "night", written by `ugreen-led-ctl schedule`.
+const SCHEDULE_STATE = '/var/run/ugreen-led-control.schedule';
+
 // What a backend command changes in the saved settings of one LED.
 function config_changes(array $args): array
 {
@@ -471,7 +474,7 @@ if ($method === 'POST') {
     if ($action === 'lang') {
         $lang = (string)($input['value'] ?? '');
 
-        if (!in_array($lang, ['auto', 'de', 'en'], true)) {
+        if (!in_array($lang, ['auto', 'de', 'en', 'es'], true)) {
             respond([
                 'ok' => false,
                 'error' => 'Invalid language'
@@ -789,6 +792,11 @@ if ($method === 'POST') {
             'ok' => false,
             'error' => 'Written to the LEDs but not saved: ' . CONFIG_FILE . ' is not writable'
         ], 500);
+    }
+
+    // At night a new brightness is the day value: saved above, then dimmed again.
+    if (in_array($action, ['brightness', 'on', 'off'], true) && trim((string)@file_get_contents(SCHEDULE_STATE)) === 'night') {
+        run_backend(['schedule', '--force']);
     }
 
     respond([
