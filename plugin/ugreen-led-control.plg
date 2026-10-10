@@ -26,7 +26,7 @@
 <CHANGES>
 
 ### 0.17.3
-- Fix: a colour typed as a hex value now shows in its preview swatch right away (GitHub issue #30)
+- Fix: a colour typed as a hex value now shows in its preview swatch right away (reported in the forum)
 
 ### 0.17.2
 - Every download is checked against its MD5, so the plugin manager only installs the files of this version (Community Applications review)
