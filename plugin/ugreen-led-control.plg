@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.19.2">
+<!ENTITY version   "0.19.3">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.19.3
+- In status mode the brightness sliders show the setting you chose, not the dimmed value of a spun-down disk, and the LED table says when a bay is dimmed, off or pulsing because its disk is in standby (it looked as if the setting jumped back; Drives → Status display → Disks in standby → Normal turns the dimming off)
 
 ### 0.19.2
 - Fix: setting the brightness (or colour) of several LEDs one after the other could put earlier LEDs back to their old values. Settings are now saved under a lock and before the LEDs are written, one failing LED no longer stops the others, and a slow read can't overwrite the page with older values
@@ -200,12 +203,12 @@
 
 <FILE Name="&srcDIR;/js/i18n.js">
 <URL>&gitURL;/src/web/js/i18n.js</URL>
-<MD5>e168d73e15e80d4ceda01aa74ee9a071</MD5>
+<MD5>3524331b4773aab391140813032e3136</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/app.js">
 <URL>&gitURL;/src/web/js/app.js</URL>
-<MD5>4ded25ebc65ddcd973cb754c76dc9f01</MD5>
+<MD5>e360dc9983e78385d48ba5a8d7a4964a</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/dash.js">

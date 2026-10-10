@@ -442,11 +442,12 @@
         element.title = `${ledLabel(led)}: ${s.color.toUpperCase()}, ${Math.round(s.brightness / 2.55)} %`;
     }
 
-    // Brightness 0-255 to show for an LED: at night the saved day value, since
-    // the LED itself is dimmed (or off) by night mode.
+    // Brightness 0-255 to show for an LED: the saved value whenever night mode or
+    // the status daemon (spun-down disks are dimmed) changes what the LED itself
+    // shows; the setting is what the user chose, not what the daemon derived.
     function dayLevel(led) {
         const saved = state.status.saved_brightness?.[led];
-        return state.status.night && saved != null ? saved : state.leds[led]?.brightness || 0;
+        return (state.status.night || statusMode()) && saved != null ? saved : state.leds[led]?.brightness || 0;
     }
 
     function renderGeneral() {
@@ -757,9 +758,14 @@
         qa('[data-led-sub]').forEach(element => {
             const bay = state.bayInfo.find(b => b.led === element.dataset.ledSub);
 
+            // In status mode a spun-down disk's LED differs from its setting.
+            const standby = bay && bay.device && bay.standby && statusMode()
+                ? t(`led.standby_${state.status.standby_mode || 'dim'}`, { pct: state.status.standby_level ?? 30 })
+                : '';
+
             element.textContent = !bay ? ''
                 : !bay.device ? t('bays.no_disk')
-                    : [bay.slot, `/dev/${bay.device}`].filter(Boolean).join(' · ');
+                    : [bay.slot, `/dev/${bay.device}`, standby].filter(Boolean).join(' · ');
         });
     }
 
