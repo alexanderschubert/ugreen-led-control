@@ -75,24 +75,41 @@ function read_settings(): array
     return is_file(CONFIG_FILE) ? (parse_ini_file(CONFIG_FILE) ?: []) : [];
 }
 
+// Requests arrive in parallel (two sliders moved one after the other), so the
+// read-modify-write of the settings file runs under a lock.
+const CONFIG_LOCK = '/var/run/ugreen-led-control.cfg.lock';
+
 function save_settings(array $changes): bool
 {
-    $config = array_merge(read_settings(), array_map('strval', $changes));
+    $lock = @fopen(CONFIG_LOCK, 'c');
 
-    ksort($config);
-
-    $content = '';
-    foreach ($config as $key => $value) {
-        $content .= "{$key}=\"{$value}\"\n";
+    if ($lock) {
+        flock($lock, LOCK_EX);
     }
 
-    if (!is_dir(dirname(CONFIG_FILE))) {
-        @mkdir(dirname(CONFIG_FILE), 0777, true);
+    try {
+        $config = array_merge(read_settings(), array_map('strval', $changes));
+
+        ksort($config);
+
+        $content = '';
+        foreach ($config as $key => $value) {
+            $content .= "{$key}=\"{$value}\"\n";
+        }
+
+        if (!is_dir(dirname(CONFIG_FILE))) {
+            @mkdir(dirname(CONFIG_FILE), 0777, true);
+        }
+
+        $tmp = CONFIG_FILE . '.' . getmypid() . '.tmp';
+
+        return file_put_contents($tmp, $content) !== false && rename($tmp, CONFIG_FILE);
+    } finally {
+        if ($lock) {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
     }
-
-    $tmp = CONFIG_FILE . '.tmp';
-
-    return file_put_contents($tmp, $content) !== false && rename($tmp, CONFIG_FILE);
 }
 
 // A colour or a hardware effect chosen for one of these LEDs replaces a running
@@ -814,29 +831,38 @@ if ($method === 'POST') {
         stop_fx_on($leds);
     }
 
+    // Saved before the LEDs are written: the status daemon (and a reboot) read this
+    // file, and must not put an older value back while this request is running.
+    if (!save_config($leds, config_changes($args))) {
+        respond([
+            'ok' => false,
+            'error' => CONFIG_FILE . ' is not writable'
+        ], 500);
+    }
+
+    // Every LED is tried; one that fails doesn't leave the rest at their old values.
+    $failed = [];
+
     foreach ($leds as $target) {
         $result = run_backend(
             array_map(fn ($arg) => $arg === '%LED%' ? $target : $arg, $args)
         );
 
         if ($result['code'] !== 0) {
-            respond([
-                'ok' => false,
-                'error' => "{$target}: {$result['output']}"
-            ], 500);
+            $failed[] = "{$target}: {$result['output']}";
         }
-    }
-
-    if (!save_config($leds, config_changes($args))) {
-        respond([
-            'ok' => false,
-            'error' => 'Written to the LEDs but not saved: ' . CONFIG_FILE . ' is not writable'
-        ], 500);
     }
 
     // At night a new brightness is the day value: saved above, then dimmed again.
     if (in_array($action, ['brightness', 'on', 'off'], true) && trim((string)@file_get_contents(SCHEDULE_STATE)) === 'night') {
         run_backend(['schedule', '--force']);
+    }
+
+    if ($failed) {
+        respond([
+            'ok' => false,
+            'error' => implode("\n", $failed)
+        ], 500);
     }
 
     respond([

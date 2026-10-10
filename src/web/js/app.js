@@ -100,6 +100,7 @@
         bayInfo: [],
         schedule: null,
         busy: 0,
+        writeSeq: 0,
         tab: 'system',
         target: 'all',
         speed: 2,
@@ -197,7 +198,21 @@
      * ---------------------------------------------------------
      */
 
+    // Every write counts twice (start, end), so a read that was in flight while a
+    // write ran can be told apart and dropped: its values are older than the write.
     async function api(params, post = false) {
+        if (!post) return request(params, false);
+
+        state.writeSeq++;
+
+        try {
+            return await request(params, true);
+        } finally {
+            state.writeSeq++;
+        }
+    }
+
+    async function request(params, post) {
         const options = { credentials: 'same-origin' };
         let url = API;
 
@@ -303,11 +318,13 @@
     async function refresh() {
         if (!state.order.length) return;
 
+        const seq = state.writeSeq;
+
         try {
             const data = await api({ action: 'all' });
 
-            // A write started while this read was in flight; its own refresh follows.
-            if (state.busy) return;
+            // A write ran while this read was in flight; its own refresh follows.
+            if (state.busy || seq !== state.writeSeq) return;
 
             const leds = {};
 
