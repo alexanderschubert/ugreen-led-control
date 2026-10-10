@@ -104,6 +104,7 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
                 </div>
                 <output class="ulc-value" id="ulc-brightness-value">80%</output>
             </div>
+            <p class="ulc-muted ulc-night-note" id="ulc-night-note" hidden></p>
 
             <div class="ulc-field-row">
                 <label for="ulc-mode" data-i18n="general.mode">Standardmodus</label>
@@ -246,7 +247,7 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
         <p class="ulc-hint" id="ulc-sync-state" hidden></p>
         <div class="ulc-bays" id="ulc-bays"></div>
     </article>
-    <article class="ulc-card">
+    <article class="ulc-card" id="ulc-display-card">
         <h2 data-i18n="display.title">Statusanzeige</h2>
         <p class="ulc-muted" data-i18n="display.intro">Wie die Laufwerks- und Netzwerk-LEDs im Statusmodus Unraid-Zustände zeigen.</p>
 
@@ -299,10 +300,6 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
                 <output class="ulc-value" id="ulc-standby-level-value">30%</output>
             </div>
         </div>
-
-        <div class="ulc-actions">
-            <button type="button" class="ulc-btn primary" id="ulc-display-save"><span class="ulc-ico" data-ulc-icon="check"></span><span data-i18n="common.save">Speichern</span></button>
-        </div>
     </article>
 </section>
 
@@ -318,7 +315,7 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
 <!-- ================= Zeitpläne ================= -->
 
 <section class="ulc-view" data-view="schedules">
-    <article class="ulc-card">
+    <article class="ulc-card" id="ulc-night-card">
         <h2 data-i18n="night.title">Nachtmodus</h2>
         <p class="ulc-muted" data-i18n="night.intro">Jeden Tag zu festen Zeiten dimmen oder ausschalten – auch über Mitternacht, z. B. 22:00 bis 07:00. Im Statusmodus folgen Laufwerks- und Netzwerk-LED; ausgeschaltete LEDs blinken nachts nicht.</p>
 
@@ -352,10 +349,6 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
                 <output class="ulc-value" id="ulc-night-brightness-value">8%</output>
             </div>
         </div>
-
-        <div class="ulc-actions">
-            <button type="button" class="ulc-btn primary" id="ulc-night-save"><span class="ulc-ico" data-ulc-icon="check"></span><span data-i18n="common.save">Speichern</span></button>
-        </div>
     </article>
 </section>
 
@@ -366,7 +359,7 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
         <h2 data-i18n="system.title">System</h2>
         <dl class="ulc-facts" id="ulc-facts"></dl>
     </article>
-    <article class="ulc-card">
+    <article class="ulc-card" id="ulc-alert-card">
         <h2 data-i18n="alerts.title">Unraid-Warnungen</h2>
         <p class="ulc-muted" data-i18n="alerts.intro">Bei ungelesenen Unraid-Meldungen blinkt die Power-LED. Liest oder archivierst du sie in Unraid, kehrt sie in ihren normalen Zustand zurück. Geprüft wird jede Minute.</p>
 
@@ -391,10 +384,6 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
             <label data-i18n="alerts.color">Farbe</label>
             <div id="ulc-alert-color"></div>
         </div>
-
-        <div class="ulc-actions">
-            <button type="button" class="ulc-btn primary" id="ulc-alert-save"><span class="ulc-ico" data-ulc-icon="check"></span><span data-i18n="common.save">Speichern</span></button>
-        </div>
     </article>
     <article class="ulc-card">
         <h2 data-i18n="language.title">Sprache</h2>
@@ -404,6 +393,7 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
                 <option value="auto" data-i18n="language.auto">Automatisch (wie Unraid)</option>
                 <option value="de">Deutsch</option>
                 <option value="en">English</option>
+                <option value="es">Español</option>
             </select>
         </div>
     </article>

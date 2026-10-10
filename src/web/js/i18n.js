@@ -187,10 +187,11 @@ window.ULC_I18N = {
         'night.brightness': 'Helligkeit nachts',
         'night.state_off': 'Aus – die LEDs bleiben rund um die Uhr gleich.',
         'night.state_night': 'Gerade Nacht – bis {time} Uhr.',
+        'night.note_dim': 'Nachtmodus: Die LEDs sind bis {time} Uhr gedimmt. Hier stellst du die Helligkeit für den Tag ein.',
+        'night.note_off': 'Nachtmodus: Die LEDs sind bis {time} Uhr aus. Hier stellst du die Helligkeit für den Tag ein.',
         'night.state_day': 'Gerade Tag – Nacht ab {time} Uhr.',
         'night.need_times': 'Bitte Beginn und Ende angeben.',
         'night.saved': 'Nachtmodus gespeichert',
-        'common.save': 'Speichern',
 
         'system.title': 'System',
         'language.title': 'Sprache',
@@ -423,10 +424,11 @@ window.ULC_I18N = {
         'night.brightness': 'Brightness at night',
         'night.state_off': 'Off – the LEDs stay the same around the clock.',
         'night.state_night': 'Night now – until {time}.',
+        'night.note_dim': 'Night mode: the LEDs are dimmed until {time}. This sets the brightness for the day.',
+        'night.note_off': 'Night mode: the LEDs are off until {time}. This sets the brightness for the day.',
         'night.state_day': 'Day now – night from {time}.',
         'night.need_times': 'Please enter a start and an end.',
         'night.saved': 'Night mode saved',
-        'common.save': 'Save',
 
         'system.title': 'System',
         'language.title': 'Language',
@@ -467,5 +469,8 @@ window.ULC_I18N = {
 
         'error.response': 'Invalid API response (HTTP {status})',
         'error.api': 'API error (HTTP {status})'
+    },
+    // Spanish: translated by the community; missing keys show in English.
+    es: {
     }
 };
