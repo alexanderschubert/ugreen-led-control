@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.19.1">
+<!ENTITY version   "0.19.2">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.19.2
+- Fix: setting the brightness (or colour) of several LEDs one after the other could put earlier LEDs back to their old values. Settings are now saved under a lock and before the LEDs are written, one failing LED no longer stops the others, and a slow read can't overwrite the page with older values
 
 ### 0.19.1
 - Dashboard tile is compact now: slim bays with the number and the LED, a state only for an error or SMART warning (temperatures are on Unraid's own storage tiles); "Dashboard tile → With temperatures" in System → Appearance brings the old view back
@@ -162,7 +165,7 @@
 
 <FILE Name="&srcDIR;/api.php">
 <URL>&gitURL;/src/web/api.php</URL>
-<MD5>c1693cf7be4e602910fc6e8efde9e0fe</MD5>
+<MD5>403af6815d533651e737471ae340f534</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDControl.page">
@@ -202,7 +205,7 @@
 
 <FILE Name="&srcDIR;/js/app.js">
 <URL>&gitURL;/src/web/js/app.js</URL>
-<MD5>0fbe8167249d02afcda85b1beae4c113</MD5>
+<MD5>4ded25ebc65ddcd973cb754c76dc9f01</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/dash.js">
