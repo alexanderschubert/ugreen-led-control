@@ -1097,9 +1097,22 @@
 
     function bindColorInputs(container, applyFor) {
         container.addEventListener('input', event => {
-            if (event.target.type !== 'color') return;
-            event.target.closest('.ulc-swatch').style.setProperty('--c', event.target.value);
-            event.target.closest('.ulc-color-input').querySelector('input[type="text"]').value = event.target.value.toUpperCase();
+            const input = event.target;
+            const box = input.closest('.ulc-color-input');
+            if (!box) return;
+
+            if (input.type === 'color') {
+                box.querySelector('.ulc-swatch').style.setProperty('--c', input.value);
+                box.querySelector('input[type="text"]').value = input.value.toUpperCase();
+                return;
+            }
+
+            // A typed hex value previews as soon as it is complete (GitHub issue #30).
+            const hex = input.type === 'text' ? normalizeHex(input.value) : null;
+            if (hex) {
+                box.querySelector('.ulc-swatch').style.setProperty('--c', hex);
+                box.querySelector('input[type="color"]').value = hex;
+            }
         });
 
         container.addEventListener('change', event => {
