@@ -39,7 +39,7 @@ window.ULC_I18N = {
         'general.mode': 'Standardmodus',
         'mode.manual': 'Manuell',
         'mode.status': 'Statusbasiert',
-        'mode.hint': 'Laufwerks-LEDs leuchten in ihrer Farbe, blinken bei Zugriffen und zeigen bei Fehlern die Fehlerfarbe. Die Netzwerk-LED blinkt bei Datenverkehr und zeigt ohne Verbindung die Fehlerfarbe; darunter kannst du sie ruhig leuchten lassen oder manuell steuern. Effekte gelten in diesem Modus nur für die Power-LED und eine manuelle Netzwerk-LED.',
+        'mode.hint': 'Laufwerks-LEDs leuchten in ihrer Farbe, blinken bei Zugriffen und zeigen bei Fehlern die Fehlerfarbe. Die Netzwerk-LED blinkt bei Datenverkehr und zeigt ohne Verbindung die Fehlerfarbe; mit der Auswahl „Netzwerk-LED“ kannst du sie stattdessen ruhig leuchten lassen oder manuell steuern. Effekte gelten in diesem Modus nur für die Power-LED und eine manuelle Netzwerk-LED.',
         'mode.status_on': 'Statusmodus aktiv',
         'mode.manual_on': 'Manueller Modus aktiv',
 
@@ -291,7 +291,7 @@ window.ULC_I18N = {
         'general.mode': 'Default mode',
         'mode.manual': 'Manual',
         'mode.status': 'Status-based',
-        'mode.hint': 'Drive LEDs glow in their colour, blink on access and show the error colour on errors. The network LED blinks with traffic and shows the error colour without a connection; below it can glow steadily or stay manual instead. In this mode effects only apply to the power LED and a manual network LED.',
+        'mode.hint': 'Drive LEDs glow in their colour, blink on access and show the error colour on errors. The network LED blinks with traffic and shows the error colour without a connection; the “Network LED” setting lets it glow steadily or stay manual instead. In this mode effects only apply to the power LED and a manual network LED.',
         'mode.status_on': 'Status mode on',
         'mode.manual_on': 'Manual mode on',
 

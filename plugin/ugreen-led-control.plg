@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.19.3">
+<!ENTITY version   "0.19.4">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.19.4
+- Wording: the status mode hint named the network LED setting only as "below"; it now names the setting (thanks to the Spanish translator for the question)
 
 ### 0.19.3
 - In status mode the brightness sliders show the setting you chose, not the dimmed value of a spun-down disk, and the LED table says when a bay is dimmed, off or pulsing because its disk is in standby (it looked as if the setting jumped back; Drives → Status display → Disks in standby → Normal turns the dimming off)
@@ -203,7 +206,7 @@
 
 <FILE Name="&srcDIR;/js/i18n.js">
 <URL>&gitURL;/src/web/js/i18n.js</URL>
-<MD5>3524331b4773aab391140813032e3136</MD5>
+<MD5>4e310992aa8cf99ba6fd15a790e8cd2d</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/app.js">
