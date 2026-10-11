@@ -44,6 +44,17 @@ Copy the working tree onto the running system without a release. It needs `build
 bash scripts/install-dev.sh
 ```
 
+## Translations
+
+The interface texts are in `src/web/js/i18n.js`, one block per language (`de`, `en`, `es`). Missing texts show in English.
+
+```
+python3 scripts/i18n.py export en > en.json   # all English texts as a template
+python3 scripts/i18n.py check                 # same keys, {placeholders} and HTML as English (CI runs this)
+```
+
+To add or improve a language: translate only the values, keep `{placeholders}` and HTML tags as they are, and open a pull request or post the JSON in an issue. Spanish: ivolution.
+
 ## Release
 
 1. Bump `version` and `CHANGES` in `plugin/ugreen-led-control.plg`.
