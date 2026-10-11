@@ -79,6 +79,11 @@ chmod 644 "$DEST/UGREENLEDControl.page"
 chmod 644 "$DEST/css/app.css"
 chmod 644 "$DEST/js/app.js" "$DEST/js/i18n.js" "$DEST/js/dash.js" "$DEST/UGREENLEDDashboard.page" "$DEST/include/lang.php"
 
+# The copy replaced the .page files, and with them a favorite's Menu label.
+if [ -x /usr/local/emhttp/webGui/scripts/restore_favorites ]; then
+    /usr/local/emhttp/webGui/scripts/restore_favorites
+fi
+
 "$DEST/backend/ugreen-led-ctl" apply
 if grep -qx 'mode="status"' /boot/config/plugins/ugreen-led-control/leds.cfg 2>/dev/null; then
     "$DEST/backend/ugreen-led-ctl" daemon start

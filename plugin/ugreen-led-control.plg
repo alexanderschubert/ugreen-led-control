@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.19.4">
+<!ENTITY version   "0.19.5">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.19.5
+- Fix: a plugin marked as favorite (heart icon in Settings) lost the mark on update and got it back only after a reboot; the update now restores it right away
 
 ### 0.19.4
 - Wording: the status mode hint named the network LED setting only as "below"; it now names the setting (thanks to the Spanish translator for the question)
@@ -274,6 +277,13 @@ rm -rf "${PLUGIN_DIR}"
 mkdir -p "${PLUGIN_DIR}"
 cp -r "${SRC_DIR}/." "${PLUGIN_DIR}/"
 chmod 755 "${PLUGIN_DIR}/backend/ugreen-led-ctl" "${PLUGIN_DIR}/backend/ugreen-led-i2c"
+
+# A favorite (the heart on the Settings page) is a label in the Menu line of the
+# .page file, which the copy above has just replaced. Unraid puts it back at
+# boot only, so do that now as well.
+if [ -x /usr/local/emhttp/webGui/scripts/restore_favorites ]; then
+    /usr/local/emhttp/webGui/scripts/restore_favorites
+fi
 
 #
 # Restore the LED settings saved by the web interface (this also runs at boot)
