@@ -16,12 +16,20 @@ LED control for UGREEN DX/DXP NAS devices on Unraid 7: colour, brightness and ef
 - **Interface**: English, German and Spanish; dark, light or "same as Unraid"; every setting saves on change and survives a reboot
 - It never wakes sleeping disks and needs no kernel module
 
+![LED settings](docs/screenshots/led-settings.png)
+
 ![Drives](docs/screenshots/drives.png)
 
+Dashboard tile, compact (the default) and with temperatures (Settings → System → Appearance → Dashboard tile):
+
 <p>
-  <img src="docs/screenshots/dashboard-tile.png" alt="Dashboard tile" width="48%">
-  <img src="docs/screenshots/overview-light.png" alt="Light colour scheme" width="48%">
+  <img src="docs/screenshots/dashboard-tile.png" alt="Compact dashboard tile" width="49%">
+  <img src="docs/screenshots/dashboard-tile-full.png" alt="Dashboard tile with temperatures" width="49%">
 </p>
+
+The light colour scheme (System → Appearance → Colour scheme):
+
+![Light colour scheme](docs/screenshots/overview-light.png)
 
 The screenshots show the interface with sample data of a DXP6800 Pro.
 
