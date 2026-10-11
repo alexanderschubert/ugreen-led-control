@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.20.0">
+<!ENTITY version   "0.20.1">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.20.1
+- Spanish: new version of the translation by ivolution (one term for "brightness" throughout, "luminosidad")
 
 ### 0.20.0
 - Spanish interface (Español), translated by ivolution; Unraid's Spanish locale selects it automatically
@@ -213,7 +216,7 @@
 
 <FILE Name="&srcDIR;/js/i18n.js">
 <URL>&gitURL;/src/web/js/i18n.js</URL>
-<MD5>ab7c3aa7c5cd9ab19be93a36a8358214</MD5>
+<MD5>a48b19e92bb14b85f95ed91c535d9755</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/app.js">
