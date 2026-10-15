@@ -298,6 +298,7 @@
             renderNight();
             renderAlerts();
             renderDisplay();
+            renderNetwork();
             await loadBays();
         } catch (error) {
             renderStatus(false, error.message);
@@ -911,21 +912,6 @@
         if (!smartColor.firstElementChild) smartColor.innerHTML = colorInput('#ff8c00');
         setColorInput(smartColor, rgbToHex(status.smart_color || '255 140 0'));
 
-        const speedOn = Boolean(status.netdev_speed_enabled);
-        q('#ulc-speed-enabled').checked = speedOn;
-        q('#ulc-speed-colors').hidden = !speedOn;
-
-        LINK_SPEEDS.forEach(speed => {
-            const saved = (status.netdev_speed_colors || {})[speed];
-            setColorInput(q(`[data-speed="${speed}"]`), saved ? rgbToHex(saved) : SPEED_DEFAULTS[speed]);
-        });
-
-        const current = q('#ulc-speed-current');
-        current.hidden = !speedOn;
-        current.textContent = status.netdev_speed > 0
-            ? t('display.speed_current', { speed: speedLabel(status.netdev_speed) })
-            : t('display.speed_unknown');
-
         const level = q('#ulc-standby-level');
         level.value = status.standby_level || 30;
         setRangeFill(level);
@@ -933,16 +919,30 @@
         level.closest('.ulc-inline').classList.toggle('disabled', q('#ulc-standby-mode').value !== 'dim');
     }
 
-    function saveDisplay() {
-        const hex = normalizeHex(q('#ulc-sync-color input[type="text"]').value);
-        const smartHex = normalizeHex(q('#ulc-smart-color input[type="text"]').value);
+    /* Network LED by link speed (LED settings) */
 
-        if (!hex || !smartHex) {
-            toast(t('colors.invalid'), 'error');
-            return;
-        }
+    function renderNetwork() {
+        const status = state.status;
+        const current = q('#ulc-speed-current');
+        const speedOn = Boolean(status.netdev_speed_enabled);
 
-        const smart = hexToRgb(smartHex);
+        current.textContent = status.netdev_speed > 0
+            ? t('display.speed_current', { speed: speedLabel(status.netdev_speed) })
+            : t('display.speed_unknown');
+
+        if (q('#ulc-network-card').contains(document.activeElement)) return;
+
+        q('#ulc-speed-enabled').checked = speedOn;
+        q('#ulc-speed-colors').hidden = !speedOn;
+        current.hidden = !speedOn;
+
+        LINK_SPEEDS.forEach(speed => {
+            const saved = (status.netdev_speed_colors || {})[speed];
+            setColorInput(q(`[data-speed="${speed}"]`), saved ? rgbToHex(saved) : SPEED_DEFAULTS[speed]);
+        });
+    }
+
+    function saveNetwork() {
         const speeds = {};
 
         for (const speed of LINK_SPEEDS) {
@@ -959,6 +959,27 @@
 
         return run(
             () => api({
+                action: 'netdev_speed',
+                speed_enabled: q('#ulc-speed-enabled').checked ? '1' : '0',
+                ...speeds
+            }, true),
+            t('display.netdev_saved')
+        );
+    }
+
+    function saveDisplay() {
+        const hex = normalizeHex(q('#ulc-sync-color input[type="text"]').value);
+        const smartHex = normalizeHex(q('#ulc-smart-color input[type="text"]').value);
+
+        if (!hex || !smartHex) {
+            toast(t('colors.invalid'), 'error');
+            return;
+        }
+
+        const smart = hexToRgb(smartHex);
+
+        return run(
+            () => api({
                 action: 'status_display',
                 disk_color_mode: q('#ulc-disk-color-mode').value,
                 smart_enabled: q('#ulc-smart-enabled').checked ? '1' : '0',
@@ -968,8 +989,6 @@
                 sync_enabled: q('#ulc-sync-enabled').checked ? '1' : '0',
                 standby_mode: q('#ulc-standby-mode').value,
                 standby_level: q('#ulc-standby-level').value,
-                speed_enabled: q('#ulc-speed-enabled').checked ? '1' : '0',
-                ...speeds,
                 ...hexToRgb(hex)
             }, true),
             t('display.saved')
@@ -1343,6 +1362,7 @@
         });
 
         autoSave(q('#ulc-display-card'), saveDisplay);
+        autoSave(q('#ulc-network-card'), saveNetwork);
         autoSave(q('#ulc-alert-card'), saveAlerts);
         autoSave(q('#ulc-night-card'), saveSchedule);
 

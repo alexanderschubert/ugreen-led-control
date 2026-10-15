@@ -231,6 +231,24 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
         </p>
         <div class="ulc-table" id="ulc-led-table"></div>
     </article>
+    <article class="ulc-card" id="ulc-network-card">
+        <h2 data-i18n="network.title">Netzwerk-LED</h2>
+        <p class="ulc-muted" data-i18n="network.intro">Die Netzwerk-LED kann die Geschwindigkeit der Verbindung anzeigen. Die Anschlüsse stehen im Gehäusebild neben „LAN“.</p>
+
+        <label class="ulc-switch-row">
+            <span class="ulc-switch">
+                <input type="checkbox" id="ulc-speed-enabled">
+                <span></span>
+            </span>
+            <span>
+                <strong data-i18n="display.speed">Netzwerk-LED nach Verbindungsgeschwindigkeit</strong>
+                <small data-i18n="display.speed_hint">Die Farbe der Netzwerk-LED zeigt die ausgehandelte Geschwindigkeit der Verbindung, z. B. 1 statt 2,5 Gbit/s bei einem schlechten Kabel. Ohne Verbindung bleibt die Fehlerfarbe, bei „Manuell“ gilt die eigene Farbe.</small>
+            </span>
+        </label>
+
+        <div class="ulc-form" id="ulc-speed-colors" hidden></div>
+        <p class="ulc-hint" id="ulc-speed-current" hidden></p>
+    </article>
 </section>
 
 <!-- ================= Laufwerke ================= -->
@@ -276,20 +294,6 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
                 <small data-i18n="display.smart_hint">Ein Schacht leuchtet in der Warnfarbe, wenn umgelagerte, wartende oder nicht korrigierbare Sektoren zunehmen oder Unraid Lese-/Schreibfehler zählt.</small>
             </span>
         </label>
-
-        <label class="ulc-switch-row">
-            <span class="ulc-switch">
-                <input type="checkbox" id="ulc-speed-enabled">
-                <span></span>
-            </span>
-            <span>
-                <strong data-i18n="display.speed">Netzwerk-LED nach Verbindungsgeschwindigkeit</strong>
-                <small data-i18n="display.speed_hint">Die Farbe der Netzwerk-LED zeigt die ausgehandelte Geschwindigkeit der Verbindung, z. B. 1 statt 2,5 Gbit/s bei einem schlechten Kabel. Ohne Verbindung bleibt die Fehlerfarbe, bei „Manuell“ gilt die eigene Farbe.</small>
-            </span>
-        </label>
-
-        <div class="ulc-form" id="ulc-speed-colors" hidden></div>
-        <p class="ulc-hint" id="ulc-speed-current" hidden></p>
 
         <div class="ulc-form">
             <label for="ulc-disk-color-mode" data-i18n="display.color_mode">Farbe der Laufwerks-LEDs</label>
