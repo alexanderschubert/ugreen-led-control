@@ -459,9 +459,7 @@
         const speed = Number(state.status.netdev_speed) || 0;
         const items = ports.length > 1
             ? ports.map(port => ({
-                text: port.link
-                    ? `${port.name} ${speedShort(port.speed)}`.trim()
-                    : `${port.name} ${port.max ? speedShort(port.max) + ' ' : ''}\u2715`,
+                text: speedShort(port.link ? port.speed : port.max),
                 down: !port.link,
                 title: portTitle(port)
             }))
@@ -470,7 +468,8 @@
         qa('[data-link-speed]').forEach(element => {
             element.replaceChildren(...items.map(item => {
                 const span = document.createElement('span');
-                span.textContent = item.text;
+                span.innerHTML = PORT_ICON;
+                span.append(document.createTextNode(item.text));
                 span.title = item.title;
                 if (item.down) span.className = 'down';
                 return span;
@@ -532,6 +531,9 @@
     // Network LED by link speed (Mbit/s); the backend picks the largest step at or below the speed.
     const LINK_SPEEDS = [10, 100, 1000, 2500, 5000, 10000];
     const SPEED_DEFAULTS = { 10: '#ff3b30', 100: '#ff8c00', 1000: '#ffd60a', 2500: '#00c853', 5000: '#00c8c8', 10000: '#0078ff' };
+
+    // An RJ45 socket: the network ports next to the LAN LED.
+    const PORT_ICON = '<svg class="ulc-port-ico" viewBox="0 0 20 16" aria-hidden="true"><rect x="1.5" y="2.5" width="17" height="12" rx="1.8"/><path d="M7.5 2.5V1.2h5v1.3"/><path d="M5 8v4M6.6 8v4M8.2 8v4M9.8 8v4M11.4 8v4M13 8v4M14.6 8v4"/></svg>';
 
     // "2.5G", "1G", "100M": the negotiated link speed next to the LAN LED.
     const speedShort = mbps => mbps >= 1000 ? `${mbps / 1000}G` : mbps > 0 ? `${mbps}M` : '';

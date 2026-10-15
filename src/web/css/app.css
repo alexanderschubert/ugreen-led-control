@@ -988,17 +988,37 @@
 /* The negotiated link speed right after "LAN". */
 .ulc-nas-front .ulc-link-speed {
     display: inline-flex;
-    gap: 10px;
-    margin-left: -4px;
-    color: #aab4bf;
-    font-weight: 700;
+    gap: 12px;
+    margin-left: 2px;
     white-space: nowrap;
 }
 
-/* A port without link: dimmed, with its maximum speed and a cross. */
-.ulc-nas-front .ulc-link-speed .down {
+.ulc-nas-front .ulc-link-speed > span {
+    display: inline-flex;
+    gap: 5px;
+    align-items: center;
+    color: #c9d1da;
+    font-weight: 700;
+}
+
+/* An RJ45 socket; green with link, dimmed with the speed it supports without. */
+.ulc svg.ulc-port-ico {
+    width: 18px;
+    height: 14px;
+    fill: none;
+    stroke: #34c759;
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.ulc-nas-front .ulc-link-speed > .down {
     color: #6f7882;
     font-weight: 500;
+}
+
+.ulc .ulc-link-speed > .down svg.ulc-port-ico {
+    stroke: #59616b;
 }
 
 .ulc-nas-front .ulc-link-speed[hidden] {
