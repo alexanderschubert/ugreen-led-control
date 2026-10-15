@@ -975,26 +975,30 @@ network_ok() {
 }
 
 # Negotiated speed in Mbit/s, 0 when unknown (no link, or the driver doesn't say).
-# A bond or bridge without its own value uses its fastest member.
+# A bond or bridge reports an aggregate (e.g. the sum of its members) or no value at
+# all, which isn't the speed of any cable: it uses its fastest member with a link.
 link_speed() {
     local dev="$1"
     local speed
     local best=0
     local file
-
-    speed="$(cat "$SYS_NET/$dev/speed" 2>/dev/null)"
-    case "$speed" in
-        ''|*[!0-9]*) ;;
-        *) [ "$speed" -gt 0 ] && { echo "$speed"; return; } ;;
-    esac
+    local members=0
 
     for file in "$SYS_NET/$dev"/lower_*/speed; do
         [ -e "$file" ] || continue
+        members=1
         speed="$(cat "$file" 2>/dev/null)"
         case "$speed" in ''|*[!0-9]*) continue ;; esac
         [ "$speed" -gt "$best" ] && best="$speed"
     done
-    echo "$best"
+    [ "$best" -gt 0 ] && { echo "$best"; return; }
+
+    speed="$(cat "$SYS_NET/$dev/speed" 2>/dev/null)"
+    case "$speed" in
+        ''|*[!0-9]*) ;;
+        *) [ "$members" = 0 ] && [ "$speed" -gt 0 ] && { echo "$speed"; return; } ;;
+    esac
+    echo 0
 }
 
 # Highest speed (Mbit/s) a port supports according to ethtool, 0 when unknown.
