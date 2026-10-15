@@ -40,6 +40,37 @@
         return '#' + parts.slice(0, 3).map(n => Math.max(0, Math.min(255, n)).toString(16).padStart(2, '0')).join('');
     }
 
+    // "2.5G", "1G", "100M": the negotiated link speed next to the LAN LED.
+    const speedShort = mbps => mbps >= 1000 ? `${mbps / 1000}G` : mbps > 0 ? `${mbps}M` : '';
+
+    const speedName = mbps => mbps >= 1000 ? `${String(mbps / 1000)} Gbit/s` : `${mbps} Mbit/s`;
+
+    // "eth0 10G ✕" for a port without link, "eth1 2.5G" with one; one port: just the speed.
+    function paintSpeed(root) {
+        const ports = state.status.network_ports || [];
+        const speed = Number(state.status.netdev_speed) || 0;
+        const items = ports.length > 1
+            ? ports.map(port => ({
+                text: port.link
+                    ? `${port.name} ${speedShort(port.speed)}`.trim()
+                    : `${port.name} ${port.max ? speedShort(port.max) + ' ' : ''}\u2715`,
+                down: !port.link,
+                title: `${port.name}: ${port.link ? speedName(port.speed) : t('fact.port_down')}`
+            }))
+            : speed > 0 ? [{ text: speedShort(speed), down: false, title: speedName(speed) }] : [];
+
+        root.querySelectorAll('[data-link-speed]').forEach(element => {
+            element.replaceChildren(...items.map(item => {
+                const span = document.createElement('span');
+                span.textContent = item.text;
+                span.title = item.title;
+                if (item.down) span.className = 'down';
+                return span;
+            }));
+            element.hidden = !items.length;
+        });
+    }
+
     const disks = () => (state.status.leds || []).filter(led => led.startsWith('disk'));
 
     function build(nas) {
@@ -62,7 +93,7 @@
             '</div>' +
             '<div class="ulc-nas-front">' +
             '<span class="ulc-led" data-led="power"></span><span class="ulc-led-label">Power</span>' +
-            '<span class="ulc-led" data-led="netdev"></span><span class="ulc-led-label">LAN</span>' +
+            '<span class="ulc-led" data-led="netdev"></span><span class="ulc-led-label">LAN</span><span class="ulc-led-label ulc-link-speed" data-link-speed hidden></span>' +
             '<span class="ulc-nas-brand">UGREEN</span>' +
             '</div>';
     }
@@ -143,6 +174,7 @@
             paintHeader(true);
             paintBays(root);
             paintLeds(root);
+            paintSpeed(root);
         } catch (error) {
             paintHeader(false);
         }

@@ -375,6 +375,9 @@
                 ? t('fact.controller_on', { bus: state.status.i2c_bus, address: state.status.i2c_address })
                 : t('fact.controller_off')],
             [t('fact.leds'), state.order.length ? state.order.join(', ') : t('fact.none')],
+            [t('fact.ports'), (state.status.network_ports || []).length
+                ? state.status.network_ports.map(portTitle).join(' · ')
+                : '—'],
             [t('fact.kernel'), state.status.kernel || '—'],
             [t('fact.monitor'), state.status.foreign_monitor ? t('fact.monitor_on') : t('fact.monitor_off')],
             [t('fact.saved'), state.status.settings_saved ? t('fact.saved_yes') : t('fact.saved_no')],
@@ -403,7 +406,7 @@
                 '</div>' +
                 '<div class="ulc-nas-front">' +
                 '<span class="ulc-led" data-led="power"></span><span class="ulc-led-label">Power</span>' +
-                '<span class="ulc-led" data-led="netdev"></span><span class="ulc-led-label">LAN</span>' +
+                '<span class="ulc-led" data-led="netdev"></span><span class="ulc-led-label">LAN</span><span class="ulc-led-label ulc-link-speed" data-link-speed hidden></span>' +
                 '<span class="ulc-nas-brand">UGREEN</span>' +
                 '</div>';
         });
@@ -450,7 +453,40 @@
         return (state.status.night || statusMode()) && saved != null ? saved : state.leds[led]?.brightness || 0;
     }
 
+    // "eth0 10G ✕" for a port without link, "eth1 2.5G" with one; one port: just the speed.
+    function renderLinkSpeed() {
+        const ports = state.status.network_ports || [];
+        const speed = Number(state.status.netdev_speed) || 0;
+        const items = ports.length > 1
+            ? ports.map(port => ({
+                text: port.link
+                    ? `${port.name} ${speedShort(port.speed)}`.trim()
+                    : `${port.name} ${port.max ? speedShort(port.max) + ' ' : ''}\u2715`,
+                down: !port.link,
+                title: portTitle(port)
+            }))
+            : speed > 0 ? [{ text: speedShort(speed), down: false, title: t('display.speed_current', { speed: speedLabel(speed) }) }] : [];
+
+        qa('[data-link-speed]').forEach(element => {
+            element.replaceChildren(...items.map(item => {
+                const span = document.createElement('span');
+                span.textContent = item.text;
+                span.title = item.title;
+                if (item.down) span.className = 'down';
+                return span;
+            }));
+            element.hidden = !items.length;
+        });
+    }
+
+    function portTitle(port) {
+        const max = port.max ? ` (${t('fact.port_max', { speed: speedLabel(port.max) })})` : '';
+        return `${port.name}: ${port.link ? (port.speed > 0 ? speedLabel(port.speed) : t('fact.port_up')) : t('fact.port_down')}${max}`;
+    }
+
     function renderGeneral() {
+        renderLinkSpeed();
+
         const values = state.order.map(dayLevel);
         const max = Math.max(0, ...values);
         const note = q('#ulc-night-note');
@@ -492,6 +528,17 @@
             { key: 'error', label: t('colors.error'), sub: statusMode() ? '' : t('colors.status_only'), icon: 'alert', leds: [], def: DEFAULTS.error, soon: !statusMode() }
         ].filter(row => row.key === 'error' || row.leds.every(led => state.order.includes(led)));
     }
+
+    // Network LED by link speed (Mbit/s); the backend picks the largest step at or below the speed.
+    const LINK_SPEEDS = [10, 100, 1000, 2500, 5000, 10000];
+    const SPEED_DEFAULTS = { 10: '#ff3b30', 100: '#ff8c00', 1000: '#ffd60a', 2500: '#00c853', 5000: '#00c8c8', 10000: '#0078ff' };
+
+    // "2.5G", "1G", "100M": the negotiated link speed next to the LAN LED.
+    const speedShort = mbps => mbps >= 1000 ? `${mbps / 1000}G` : mbps > 0 ? `${mbps}M` : '';
+
+    const speedLabel = mbps => mbps >= 1000
+        ? `${String(mbps / 1000).replace('.', LANG === 'en' ? '.' : ',')} Gbit/s`
+        : `${mbps} Mbit/s`;
 
     const colorInput = (value, disabled = false) => `
         <div class="ulc-color-input">
@@ -849,6 +896,21 @@
         if (!smartColor.firstElementChild) smartColor.innerHTML = colorInput('#ff8c00');
         setColorInput(smartColor, rgbToHex(status.smart_color || '255 140 0'));
 
+        const speedOn = Boolean(status.netdev_speed_enabled);
+        q('#ulc-speed-enabled').checked = speedOn;
+        q('#ulc-speed-colors').hidden = !speedOn;
+
+        LINK_SPEEDS.forEach(speed => {
+            const saved = (status.netdev_speed_colors || {})[speed];
+            setColorInput(q(`[data-speed="${speed}"]`), saved ? rgbToHex(saved) : SPEED_DEFAULTS[speed]);
+        });
+
+        const current = q('#ulc-speed-current');
+        current.hidden = !speedOn;
+        current.textContent = status.netdev_speed > 0
+            ? t('display.speed_current', { speed: speedLabel(status.netdev_speed) })
+            : t('display.speed_unknown');
+
         const level = q('#ulc-standby-level');
         level.value = status.standby_level || 30;
         setRangeFill(level);
@@ -866,6 +928,19 @@
         }
 
         const smart = hexToRgb(smartHex);
+        const speeds = {};
+
+        for (const speed of LINK_SPEEDS) {
+            const speedHex = normalizeHex(q(`[data-speed="${speed}"] input[type="text"]`).value);
+
+            if (!speedHex) {
+                toast(t('colors.invalid'), 'error');
+                return;
+            }
+
+            const c = hexToRgb(speedHex);
+            speeds[`speed_${speed}`] = `${c.r} ${c.g} ${c.b}`;
+        }
 
         return run(
             () => api({
@@ -878,6 +953,8 @@
                 sync_enabled: q('#ulc-sync-enabled').checked ? '1' : '0',
                 standby_mode: q('#ulc-standby-mode').value,
                 standby_level: q('#ulc-standby-level').value,
+                speed_enabled: q('#ulc-speed-enabled').checked ? '1' : '0',
+                ...speeds,
                 ...hexToRgb(hex)
             }, true),
             t('display.saved')
@@ -1240,6 +1317,16 @@
         bindColorInputs(q('#ulc-alert-color'), () => {});
         bindColorInputs(q('#ulc-sync-color'), () => {});
         bindColorInputs(q('#ulc-smart-color'), () => {});
+        const speedColors = q('#ulc-speed-colors');
+        speedColors.innerHTML = LINK_SPEEDS.map(speed => `
+            <label>${escapeHtml(t('display.speed_color', { speed: speedLabel(speed) }))}</label>
+            <div data-speed="${speed}">${colorInput(SPEED_DEFAULTS[speed])}</div>`).join('');
+        bindColorInputs(speedColors, () => {});
+        q('#ulc-speed-enabled').addEventListener('change', event => {
+            speedColors.hidden = !event.target.checked;
+            q('#ulc-speed-current').hidden = !event.target.checked;
+        });
+
         autoSave(q('#ulc-display-card'), saveDisplay);
         autoSave(q('#ulc-alert-card'), saveAlerts);
         autoSave(q('#ulc-night-card'), saveSchedule);

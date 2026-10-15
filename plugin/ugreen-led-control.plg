@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.20.1">
+<!ENTITY version   "0.21.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,11 @@
 >
 
 <CHANGES>
+
+### 0.21.0
+- Network LED by link speed: Drives → Status display → "Network LED by link speed" colours the LED after the negotiated speed (10 Mbit/s to 10 Gbit/s), with a colour you can change per speed; a link that negotiates less than expected (e.g. 1 instead of 2.5 Gbit/s) stands out. Without a connection the error colour stays, with a manual network LED nothing changes
+- The status daemon reads link and speed right at its start, so the first seconds show the right colour
+- The case picture and the dashboard tile show the network ports next to the LAN LED: each port with the speed it runs at ("eth1 2.5G"), a port without link dimmed with the speed it supports and a cross ("eth0 10G ✕"); with a single port just its speed. System page: new row "Network ports"
 
 ### 0.20.1
 - Spanish: new version of the translation by ivolution (one term for "brightness" throughout, "luminosidad")
@@ -170,7 +175,7 @@
 
 <FILE Name="&srcDIR;/backend/ugreen-led-ctl">
 <URL>&gitURL;/src/backend/ugreen-led-ctl</URL>
-<MD5>000c4688f15aa322050d0907db7a2675</MD5>
+<MD5>dd7e26aeb9aeb35a6975f25684c9b5f3</MD5>
 </FILE>
 
 <!-- Static binary built by the "Tag release" workflow and attached to the release -->
@@ -181,12 +186,12 @@
 
 <FILE Name="&srcDIR;/api.php">
 <URL>&gitURL;/src/web/api.php</URL>
-<MD5>403af6815d533651e737471ae340f534</MD5>
+<MD5>afbb7d70d3756b51355c3dc3fac8d142</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDControl.page">
 <URL>&gitURL;/src/web/UGREENLEDControl.page</URL>
-<MD5>7e1bb028e5350974cb532219fe9e70dc</MD5>
+<MD5>ac9ebecf6b65ffcff8e4adddb75bbd9a</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDDashboard.page">
@@ -211,22 +216,22 @@
 
 <FILE Name="&srcDIR;/css/app.css">
 <URL>&gitURL;/src/web/css/app.css</URL>
-<MD5>03ab995dce690da0dce67cd7e43b13c9</MD5>
+<MD5>d5233f4e028b5a9ebe0a2c4e6ac41973</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/i18n.js">
 <URL>&gitURL;/src/web/js/i18n.js</URL>
-<MD5>a48b19e92bb14b85f95ed91c535d9755</MD5>
+<MD5>82066b578da29a09c5917e80b6e7088c</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/app.js">
 <URL>&gitURL;/src/web/js/app.js</URL>
-<MD5>e360dc9983e78385d48ba5a8d7a4964a</MD5>
+<MD5>b77049fbbc3b7ef307799b251f33badf</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/dash.js">
 <URL>&gitURL;/src/web/js/dash.js</URL>
-<MD5>dbdd7d3542a70925dabe2ff3d7c7832e</MD5>
+<MD5>4df71b7f162dfb77866c24e22e7671ee</MD5>
 </FILE>
 
 <!-- ========================================================= -->
