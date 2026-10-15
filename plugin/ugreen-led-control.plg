@@ -27,6 +27,7 @@
 
 ### 0.21.2
 - The network port sockets take the colour set for their speed when "Network LED by link speed" is on (10G blue, 1G yellow, ...); with the option off they stay green
+- A port without link is a dimmed socket with a cross
 
 ### 0.21.1
 - The network ports next to the LAN LED are drawn as RJ45 sockets: green with the speed they run at ("2.5G"), dimmed with the speed they support when there is no link ("10G")
@@ -232,12 +233,12 @@
 
 <FILE Name="&srcDIR;/js/app.js">
 <URL>&gitURL;/src/web/js/app.js</URL>
-<MD5>864991683f1c452763b8f49b4c035071</MD5>
+<MD5>9d86640c64c2bc853049fcf32e58e3a9</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/dash.js">
 <URL>&gitURL;/src/web/js/dash.js</URL>
-<MD5>44febc026677500afff92a74fdada880</MD5>
+<MD5>d0ea1f61348ed9c35fb85547410b97ca</MD5>
 </FILE>
 
 <!-- ========================================================= -->
