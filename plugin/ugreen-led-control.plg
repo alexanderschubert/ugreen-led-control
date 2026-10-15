@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.21.3">
+<!ENTITY version   "0.21.4">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.21.4
+- "Network LED by link speed" moved from Drives → Status display to LED settings, in its own card "Network LED" below the LED table, where the network LED belongs
 
 ### 0.21.3
 - A network port without link is drawn as a dimmed socket with a cross, so it differs from a connected one by its shape and not only by its colour
@@ -195,12 +198,12 @@
 
 <FILE Name="&srcDIR;/api.php">
 <URL>&gitURL;/src/web/api.php</URL>
-<MD5>afbb7d70d3756b51355c3dc3fac8d142</MD5>
+<MD5>25186506034b8b1392169a1dda5a394c</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDControl.page">
 <URL>&gitURL;/src/web/UGREENLEDControl.page</URL>
-<MD5>ac9ebecf6b65ffcff8e4adddb75bbd9a</MD5>
+<MD5>877af77a1058d295aaacc26fa306b4d2</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDDashboard.page">
@@ -230,12 +233,12 @@
 
 <FILE Name="&srcDIR;/js/i18n.js">
 <URL>&gitURL;/src/web/js/i18n.js</URL>
-<MD5>82066b578da29a09c5917e80b6e7088c</MD5>
+<MD5>82f08ef01a8984836c6f7d891c0ac5ed</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/app.js">
 <URL>&gitURL;/src/web/js/app.js</URL>
-<MD5>9d86640c64c2bc853049fcf32e58e3a9</MD5>
+<MD5>0d88be2f86a63d578836b55919bfb14d</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/dash.js">
