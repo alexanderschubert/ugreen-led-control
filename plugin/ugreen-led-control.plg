@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.21.4">
+<!ENTITY version   "0.22.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.22.0
+- Power LED on shutdown and reboot: System → "Shutdown and reboot" lets the power LED blink or breathe in a colour of your choice from the moment Unraid stops the array during a shutdown or reboot (a plain array stop doesn't trigger it); there is a 6 second test button. Night mode still applies, and other power LED effects (alerts, rainbow) step aside
 
 ### 0.21.4
 - "Network LED by link speed" moved from Drives → Status display to LED settings, in its own card "Network LED" below the LED table, where the network LED belongs
@@ -187,7 +190,7 @@
 
 <FILE Name="&srcDIR;/backend/ugreen-led-ctl">
 <URL>&gitURL;/src/backend/ugreen-led-ctl</URL>
-<MD5>dd7e26aeb9aeb35a6975f25684c9b5f3</MD5>
+<MD5>51e77763a9f618e34e0388d31a9f55b5</MD5>
 </FILE>
 
 <!-- Static binary built by the "Tag release" workflow and attached to the release -->
@@ -196,14 +199,20 @@
 <MD5>538e96c66853849de3fdedd8b32f667d</MD5>
 </FILE>
 
+<!-- Called by emhttp at the start of every array stop (power LED on shutdown or reboot) -->
+<FILE Name="&srcDIR;/event/stopping">
+<URL>&gitURL;/src/event/stopping</URL>
+<MD5>750adcb7dbfb5220879603b880e92114</MD5>
+</FILE>
+
 <FILE Name="&srcDIR;/api.php">
 <URL>&gitURL;/src/web/api.php</URL>
-<MD5>25186506034b8b1392169a1dda5a394c</MD5>
+<MD5>9d9ebe16622c70be2e92a348c7c19194</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDControl.page">
 <URL>&gitURL;/src/web/UGREENLEDControl.page</URL>
-<MD5>877af77a1058d295aaacc26fa306b4d2</MD5>
+<MD5>eb15102ed28fe45a9cb69c394b4c00e3</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDDashboard.page">
@@ -233,12 +242,12 @@
 
 <FILE Name="&srcDIR;/js/i18n.js">
 <URL>&gitURL;/src/web/js/i18n.js</URL>
-<MD5>82f08ef01a8984836c6f7d891c0ac5ed</MD5>
+<MD5>310a82037499b4f72e74d40d0bb91ab1</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/app.js">
 <URL>&gitURL;/src/web/js/app.js</URL>
-<MD5>0d88be2f86a63d578836b55919bfb14d</MD5>
+<MD5>7fbdb3949356cfdfa9b0a4fcd10220a4</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/dash.js">
@@ -300,7 +309,7 @@ rm -rf "${BOOT_DIR}/driver" "${BOOT_DIR}/driver-state"
 rm -rf "${PLUGIN_DIR}"
 mkdir -p "${PLUGIN_DIR}"
 cp -r "${SRC_DIR}/." "${PLUGIN_DIR}/"
-chmod 755 "${PLUGIN_DIR}/backend/ugreen-led-ctl" "${PLUGIN_DIR}/backend/ugreen-led-i2c"
+chmod 755 "${PLUGIN_DIR}/backend/ugreen-led-ctl" "${PLUGIN_DIR}/backend/ugreen-led-i2c" "${PLUGIN_DIR}/event/stopping"
 
 # A favorite (the heart on the Settings page) is a label in the Menu line of the
 # .page file, which the copy above has just replaced. Unraid puts it back at

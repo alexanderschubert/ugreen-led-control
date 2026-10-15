@@ -299,6 +299,7 @@
             renderAlerts();
             renderDisplay();
             renderNetwork();
+            renderShutdown();
             await loadBays();
         } catch (error) {
             renderStatus(false, error.message);
@@ -919,6 +920,40 @@
         level.closest('.ulc-inline').classList.toggle('disabled', q('#ulc-standby-mode').value !== 'dim');
     }
 
+    /* Power LED on shutdown and reboot */
+
+    function renderShutdown() {
+        const status = state.status;
+
+        if (q('#ulc-shutdown-card').contains(document.activeElement)) return;
+
+        q('#ulc-shutdown-enabled').checked = Boolean(status.shutdown_blink);
+        q('#ulc-shutdown-effect').value = status.shutdown_effect || 'blink';
+
+        const color = q('#ulc-shutdown-color');
+        if (!color.firstElementChild) color.innerHTML = colorInput('#ff8c00');
+        setColorInput(color, rgbToHex(status.shutdown_color || '255 140 0'));
+    }
+
+    function saveShutdown() {
+        const hex = normalizeHex(q('#ulc-shutdown-color input[type="text"]').value);
+
+        if (!hex) {
+            toast(t('colors.invalid'), 'error');
+            return;
+        }
+
+        return run(
+            () => api({
+                action: 'shutdown',
+                enabled: q('#ulc-shutdown-enabled').checked ? '1' : '0',
+                effect: q('#ulc-shutdown-effect').value,
+                ...hexToRgb(hex)
+            }, true),
+            t('shutdown.saved')
+        );
+    }
+
     /* Network LED by link speed (LED settings) */
 
     function renderNetwork() {
@@ -1363,6 +1398,15 @@
 
         autoSave(q('#ulc-display-card'), saveDisplay);
         autoSave(q('#ulc-network-card'), saveNetwork);
+
+        bindColorInputs(q('#ulc-shutdown-color'), () => {});
+        autoSave(q('#ulc-shutdown-card'), saveShutdown);
+
+        // The test uses the saved colour and effect, so it follows a change made a moment ago.
+        q('#ulc-shutdown-test').addEventListener('click', async () => {
+            await saveShutdown();
+            run(() => api({ action: 'shutdown_test' }, true), t('shutdown.test_started'));
+        });
         autoSave(q('#ulc-alert-card'), saveAlerts);
         autoSave(q('#ulc-night-card'), saveSchedule);
 

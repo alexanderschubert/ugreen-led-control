@@ -1,0 +1,6 @@
+#!/bin/bash
+# emhttp calls this at the start of every array stop, also during shutdown and reboot.
+# The backend decides whether the system goes down and lets the power LED signal it;
+# emhttp waits for this script, so the work runs in the background.
+/usr/local/emhttp/plugins/ugreen-led-control/backend/ugreen-led-ctl shutdown >/dev/null 2>&1 &
+exit 0

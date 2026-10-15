@@ -313,6 +313,59 @@ if ($method === 'POST') {
         ]);
     }
 
+    // Power LED while the NAS shuts down or reboots (event/stopping reads it), and a test of it.
+    if ($action === 'shutdown') {
+        $rgb = [];
+
+        foreach (['r', 'g', 'b'] as $channel) {
+            $value = filter_var($input[$channel] ?? null, FILTER_VALIDATE_INT);
+
+            if ($value === false || $value < 0 || $value > 255) {
+                respond([
+                    'ok' => false,
+                    'error' => 'RGB values must be 0-255'
+                ], 400);
+            }
+
+            $rgb[] = $value;
+        }
+
+        $effect = (string)($input['effect'] ?? '');
+
+        if (!in_array($effect, ['blink', 'breath'], true)) {
+            respond([
+                'ok' => false,
+                'error' => 'Invalid effect values'
+            ], 400);
+        }
+
+        if (!save_settings([
+            'shutdown_blink' => ($input['enabled'] ?? '') === '1' ? '1' : '0',
+            'shutdown_color' => implode(' ', $rgb),
+            'shutdown_effect' => $effect
+        ])) {
+            respond([
+                'ok' => false,
+                'error' => CONFIG_FILE . ' is not writable'
+            ], 500);
+        }
+
+        respond(['ok' => true]);
+    }
+
+    if ($action === 'shutdown_test') {
+        $result = run_backend(['shutdown', '--test']);
+
+        if ($result['code'] !== 0) {
+            respond([
+                'ok' => false,
+                'error' => $result['output']
+            ], 500);
+        }
+
+        respond(['ok' => true]);
+    }
+
     // Network LED by link speed: on/off and one "R G B" per speed step; the status daemon reads it every 5 seconds.
     if ($action === 'netdev_speed') {
         $speed = ['netdev_speed_enabled' => ($input['speed_enabled'] ?? '') === '1' ? '1' : '0'];
