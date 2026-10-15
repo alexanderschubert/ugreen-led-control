@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.21.2">
+<!ENTITY version   "0.21.3">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -25,9 +25,11 @@
 
 <CHANGES>
 
+### 0.21.3
+- A network port without link is drawn as a dimmed socket with a cross, so it differs from a connected one by its shape and not only by its colour
+
 ### 0.21.2
 - The network port sockets take the colour set for their speed when "Network LED by link speed" is on (10G blue, 1G yellow, ...); with the option off they stay green
-- A port without link is a dimmed socket with a cross
 
 ### 0.21.1
 - The network ports next to the LAN LED are drawn as RJ45 sockets: green with the speed they run at ("2.5G"), dimmed with the speed they support when there is no link ("10G")
