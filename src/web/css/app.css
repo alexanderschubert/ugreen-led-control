@@ -446,6 +446,10 @@
     font-size: 12px;
 }
 
+.ulc-form[hidden] {
+    display: none;
+}
+
 .ulc-field-row[hidden] {
     display: none;
 }

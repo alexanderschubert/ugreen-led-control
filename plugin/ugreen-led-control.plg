@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.20.1">
+<!ENTITY version   "0.21.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,10 @@
 >
 
 <CHANGES>
+
+### 0.21.0
+- Network LED by link speed: Drives → Status display → "Network LED by link speed" colours the LED after the negotiated speed (10 Mbit/s to 10 Gbit/s), with a colour you can change per speed; a link that negotiates less than expected (e.g. 1 instead of 2.5 Gbit/s) stands out. Without a connection the error colour stays, with a manual network LED nothing changes
+- The status daemon reads link and speed right at its start, so the first seconds show the right colour
 
 ### 0.20.1
 - Spanish: new version of the translation by ivolution (one term for "brightness" throughout, "luminosidad")
@@ -170,7 +174,7 @@
 
 <FILE Name="&srcDIR;/backend/ugreen-led-ctl">
 <URL>&gitURL;/src/backend/ugreen-led-ctl</URL>
-<MD5>000c4688f15aa322050d0907db7a2675</MD5>
+<MD5>dc564f745310ac4b1f6bf3e1fa50b434</MD5>
 </FILE>
 
 <!-- Static binary built by the "Tag release" workflow and attached to the release -->
@@ -181,12 +185,12 @@
 
 <FILE Name="&srcDIR;/api.php">
 <URL>&gitURL;/src/web/api.php</URL>
-<MD5>403af6815d533651e737471ae340f534</MD5>
+<MD5>afbb7d70d3756b51355c3dc3fac8d142</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDControl.page">
 <URL>&gitURL;/src/web/UGREENLEDControl.page</URL>
-<MD5>7e1bb028e5350974cb532219fe9e70dc</MD5>
+<MD5>ac9ebecf6b65ffcff8e4adddb75bbd9a</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDDashboard.page">
@@ -211,17 +215,17 @@
 
 <FILE Name="&srcDIR;/css/app.css">
 <URL>&gitURL;/src/web/css/app.css</URL>
-<MD5>03ab995dce690da0dce67cd7e43b13c9</MD5>
+<MD5>1ec6f9d3ea6a0d54df687d2da69b5859</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/i18n.js">
 <URL>&gitURL;/src/web/js/i18n.js</URL>
-<MD5>a48b19e92bb14b85f95ed91c535d9755</MD5>
+<MD5>7597107af7ed013554935b02eebbe596</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/app.js">
 <URL>&gitURL;/src/web/js/app.js</URL>
-<MD5>e360dc9983e78385d48ba5a8d7a4964a</MD5>
+<MD5>a128220dc6c52a2851ba7cb3178b0599</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/dash.js">

@@ -351,8 +351,28 @@ if ($method === 'POST') {
             ], 400);
         }
 
+        // Network LED by link speed: on/off and one "R G B" per speed step (optional).
+        $speed = ['netdev_speed_enabled' => ($input['speed_enabled'] ?? '') === '1' ? '1' : '0'];
+
+        foreach ([10, 100, 1000, 2500, 5000, 10000] as $step) {
+            $value = (string)($input["speed_{$step}"] ?? '');
+
+            if ($value === '') {
+                continue;
+            }
+
+            if (!preg_match('/^(\d{1,3}) (\d{1,3}) (\d{1,3})$/', $value, $m) || max((int)$m[1], (int)$m[2], (int)$m[3]) > 255) {
+                respond([
+                    'ok' => false,
+                    'error' => 'RGB values must be 0-255'
+                ], 400);
+            }
+
+            $speed["netdev_speed_{$step}"] = "{$m[1]} {$m[2]} {$m[3]}";
+        }
+
         // The status daemon reads these every 5 seconds.
-        $saved = save_settings([
+        $saved = save_settings($speed + [
             'sync_enabled' => ($input['sync_enabled'] ?? '') === '1' ? '1' : '0',
             'sync_color' => implode(' ', $rgb),
             'standby_mode' => $standbyMode,
