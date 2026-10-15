@@ -26,7 +26,7 @@
 <CHANGES>
 
 ### 0.21.1
-- The network ports next to the LAN LED are drawn as RJ45 sockets: green with the speed they run at ("2.5G"), dimmed with the speed they support when there is no link ("10G")
+- The network ports next to the LAN LED are drawn as RJ45 sockets: with the speed they run at ("2.5G") in the colour set for that speed (green when "by link speed" is off), dimmed with the speed they support when there is no link ("10G")
 
 ### 0.21.0
 - Network LED by link speed: Drives → Status display → "Network LED by link speed" colours the LED after the negotiated speed (10 Mbit/s to 10 Gbit/s), with a colour you can change per speed; a link that negotiates less than expected (e.g. 1 instead of 2.5 Gbit/s) stands out. Without a connection the error colour stays, with a manual network LED nothing changes
@@ -219,7 +219,7 @@
 
 <FILE Name="&srcDIR;/css/app.css">
 <URL>&gitURL;/src/web/css/app.css</URL>
-<MD5>8ab6b46c48ac197e3e4a749e44703e50</MD5>
+<MD5>1d6e00359c9f6b7fec37d7b43a074676</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/i18n.js">
@@ -229,12 +229,12 @@
 
 <FILE Name="&srcDIR;/js/app.js">
 <URL>&gitURL;/src/web/js/app.js</URL>
-<MD5>8f1c42400e69f9efc4984065ae344bd6</MD5>
+<MD5>864991683f1c452763b8f49b4c035071</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/dash.js">
 <URL>&gitURL;/src/web/js/dash.js</URL>
-<MD5>2e3c5a052b84f2be3fb3a1abdc89c930</MD5>
+<MD5>44febc026677500afff92a74fdada880</MD5>
 </FILE>
 
 <!-- ========================================================= -->

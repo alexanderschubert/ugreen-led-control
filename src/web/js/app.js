@@ -454,6 +454,16 @@
     }
 
     // "eth0 10G ✕" for a port without link, "eth1 2.5G" with one; one port: just the speed.
+    // Colour of a port's socket: the colour set for its speed when "by link speed" is on.
+    function portColor(port) {
+        if (!port.link || !state.status.netdev_speed_enabled) return '';
+
+        const step = LINK_SPEEDS.filter(s => port.speed >= s).pop() || LINK_SPEEDS[0];
+        const rgb = (state.status.netdev_speed_colors || {})[step];
+
+        return rgb ? rgbToHex(rgb) : SPEED_DEFAULTS[step];
+    }
+
     function renderLinkSpeed() {
         const ports = state.status.network_ports || [];
         const speed = Number(state.status.netdev_speed) || 0;
@@ -461,9 +471,10 @@
             ? ports.map(port => ({
                 text: speedShort(port.link ? port.speed : port.max),
                 down: !port.link,
+                color: portColor(port),
                 title: portTitle(port)
             }))
-            : speed > 0 ? [{ text: speedShort(speed), down: false, title: t('display.speed_current', { speed: speedLabel(speed) }) }] : [];
+            : speed > 0 ? [{ text: speedShort(speed), down: false, color: portColor({ link: true, speed }), title: t('display.speed_current', { speed: speedLabel(speed) }) }] : [];
 
         qa('[data-link-speed]').forEach(element => {
             element.replaceChildren(...items.map(item => {
@@ -472,6 +483,7 @@
                 span.append(document.createTextNode(item.text));
                 span.title = item.title;
                 if (item.down) span.className = 'down';
+                if (item.color) span.style.setProperty('--port', item.color);
                 return span;
             }));
             element.hidden = !items.length;
