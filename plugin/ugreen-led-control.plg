@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.21.0">
+<!ENTITY version   "0.21.1">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -25,10 +25,13 @@
 
 <CHANGES>
 
+### 0.21.1
+- The network ports next to the LAN LED are drawn as RJ45 sockets: green with the speed they run at ("2.5G"), dimmed with the speed they support when there is no link ("10G")
+
 ### 0.21.0
 - Network LED by link speed: Drives → Status display → "Network LED by link speed" colours the LED after the negotiated speed (10 Mbit/s to 10 Gbit/s), with a colour you can change per speed; a link that negotiates less than expected (e.g. 1 instead of 2.5 Gbit/s) stands out. Without a connection the error colour stays, with a manual network LED nothing changes
 - The status daemon reads link and speed right at its start, so the first seconds show the right colour
-- The case picture and the dashboard tile show the network ports next to the LAN LED as RJ45 sockets: green with the speed it runs at ("2.5G"), dimmed with the speed it supports when there is no link ("10G"); with a single port just its speed. System page: new row "Network ports"
+- The case picture and the dashboard tile show the network ports next to the LAN LED: each port with the speed it runs at ("eth1 2.5G"), a port without link dimmed with the speed it supports and a cross ("eth0 10G ✕"); with a single port just its speed. System page: new row "Network ports"
 
 ### 0.20.1
 - Spanish: new version of the translation by ivolution (one term for "brightness" throughout, "luminosidad")
