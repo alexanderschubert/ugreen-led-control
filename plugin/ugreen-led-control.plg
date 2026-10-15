@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.22.0">
+<!ENTITY version   "0.22.1">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.22.1
+- The About page is redone: icon, name, version and licence on top, then tiles for GitHub, the Unraid forum thread and "Report a problem", then protocol and thanks
 
 ### 0.22.0
 - Power LED on shutdown and reboot: System → "Shutdown and reboot" lets the power LED blink or breathe in a colour of your choice from the moment Unraid stops the array during a shutdown or reboot (a plain array stop doesn't trigger it); there is a 6 second test button. Night mode still applies, and other power LED effects (alerts, rainbow) step aside
@@ -212,7 +215,7 @@
 
 <FILE Name="&srcDIR;/UGREENLEDControl.page">
 <URL>&gitURL;/src/web/UGREENLEDControl.page</URL>
-<MD5>eb15102ed28fe45a9cb69c394b4c00e3</MD5>
+<MD5>d6bc6c9f8fb86794f364eb7646367772</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDDashboard.page">
@@ -237,12 +240,12 @@
 
 <FILE Name="&srcDIR;/css/app.css">
 <URL>&gitURL;/src/web/css/app.css</URL>
-<MD5>1d6e00359c9f6b7fec37d7b43a074676</MD5>
+<MD5>736b2bbb9427f3ce636908d4fe9bcfe4</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/i18n.js">
 <URL>&gitURL;/src/web/js/i18n.js</URL>
-<MD5>310a82037499b4f72e74d40d0bb91ab1</MD5>
+<MD5>6ad7ffb296200abe29c3058e4a2c68b2</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/app.js">
