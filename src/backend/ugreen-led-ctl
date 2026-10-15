@@ -290,6 +290,7 @@ status() {
     printf '  "saved_brightness": %s,\n' "$(saved_brightness_json)"
     printf '  "network_device": "%s",\n' "$(network_device)"
     printf '  "netdev_speed": %s,\n' "$(link_speed "$(network_device)")"
+    printf '  "network_ports": %s,\n' "$(network_ports_json)"
     printf '  "netdev_speed_enabled": %s,\n' "$([ "$(config_value netdev_speed_enabled)" = 1 ] && echo true || echo false)"
     printf '  "netdev_speed_colors": %s,\n' "$(speed_colors_json)"
     printf '  "controller": "ugreen-led-i2c",\n'
@@ -937,6 +938,44 @@ link_speed() {
         [ "$speed" -gt "$best" ] && best="$speed"
     done
     echo "$best"
+}
+
+# Highest speed (Mbit/s) a port supports according to ethtool, 0 when unknown.
+port_max_speed() {
+    command -v ethtool >/dev/null 2>&1 || { echo 0; return; }
+
+    ethtool "$1" 2>/dev/null | awk '
+        /Supported link modes:/ { f = 1 }
+        /Supported pause frame use:/ { f = 0 }
+        f { while (match($0, /[0-9]+base/)) { n = substr($0, RSTART, RLENGTH - 4) + 0; if (n > m) m = n; $0 = substr($0, RSTART + RLENGTH) } }
+        END { print m + 0 }'
+}
+
+# The physical network ports (they have a /device link; bonds, bridges and veths don't):
+# [{"name": "eth0", "link": true, "speed": 2500, "max": 10000}, ...]
+network_ports_json() {
+    local dir
+    local name
+    local carrier
+    local speed
+    local out=""
+
+    for dir in "$SYS_NET"/*; do
+        [ -e "$dir/device" ] || continue
+        name="${dir##*/}"
+        case "$name" in
+            lo|veth*|vnet*|tap*|docker*|virbr*|wl*) continue ;;
+        esac
+
+        carrier="$(cat "$dir/carrier" 2>/dev/null)"
+        speed="$(cat "$dir/speed" 2>/dev/null)"
+        case "$speed" in ''|*[!0-9]*) speed=0 ;; esac
+        [ "$carrier" = "1" ] || speed=0
+
+        out="$out, {\"name\": \"$name\", \"link\": $([ "$carrier" = "1" ] && echo true || echo false), \"speed\": $speed, \"max\": $(port_max_speed "$name")}"
+    done
+
+    printf '[%s]' "${out#, }"
 }
 
 # "R G B" for a speed in Mbit/s from the saved colours.

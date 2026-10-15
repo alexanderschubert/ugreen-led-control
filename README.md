@@ -8,7 +8,7 @@ LED control for UGREEN DX/DXP NAS devices on Unraid 7: colour, brightness and ef
 
 - **Per LED**: colour, brightness and effect – static, breathe and pulse (run by the LED controller), rainbow and CPU temperature (run by the plugin, with speed, direction and "only when idle")
 - **Status mode**: bay LEDs blink on disk activity, show an error colour for disabled or missing disks, warn on rising SMART values (with an "Acknowledge" button), breathe during parity checks and rebuilds, and dim, switch off or pulse slowly for spun-down disks. Each bay can show its disk's temperature colour, based on Unraid's warning and critical limits
-- **Network LED**: blinks with traffic, shows only the link, or stays manual; optionally coloured by link speed (10 Mbit/s to 10 Gbit/s, one colour per speed), so a link that negotiated less than expected stands out. The speed is also written next to the LAN LED in the case picture and the dashboard tile
+- **Network LED**: blinks with traffic, shows only the link, or stays manual; optionally coloured by link speed (10 Mbit/s to 10 Gbit/s, one colour per speed), so a link that negotiated less than expected stands out. The network ports are also shown next to the LAN LED in the case picture and the dashboard tile, each with its speed, or dimmed with a cross when unplugged
 - **Night mode**: dim or switch off at fixed times, also across midnight
 - **Unraid alerts**: the power LED blinks while there are unread warnings or alerts
 - **Identify a bay**: blink one bay white before you pull a disk

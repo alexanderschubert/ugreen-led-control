@@ -375,6 +375,9 @@
                 ? t('fact.controller_on', { bus: state.status.i2c_bus, address: state.status.i2c_address })
                 : t('fact.controller_off')],
             [t('fact.leds'), state.order.length ? state.order.join(', ') : t('fact.none')],
+            [t('fact.ports'), (state.status.network_ports || []).length
+                ? state.status.network_ports.map(portTitle).join(' · ')
+                : '—'],
             [t('fact.kernel'), state.status.kernel || '—'],
             [t('fact.monitor'), state.status.foreign_monitor ? t('fact.monitor_on') : t('fact.monitor_off')],
             [t('fact.saved'), state.status.settings_saved ? t('fact.saved_yes') : t('fact.saved_no')],
@@ -450,14 +453,35 @@
         return (state.status.night || statusMode()) && saved != null ? saved : state.leds[led]?.brightness || 0;
     }
 
+    // "eth0 10G ✕" for a port without link, "eth1 2.5G" with one; one port: just the speed.
     function renderLinkSpeed() {
-        const text = speedShort(Number(state.status.netdev_speed) || 0);
+        const ports = state.status.network_ports || [];
+        const speed = Number(state.status.netdev_speed) || 0;
+        const items = ports.length > 1
+            ? ports.map(port => ({
+                text: port.link
+                    ? `${port.name} ${speedShort(port.speed)}`.trim()
+                    : `${port.name} ${port.max ? speedShort(port.max) + ' ' : ''}\u2715`,
+                down: !port.link,
+                title: portTitle(port)
+            }))
+            : speed > 0 ? [{ text: speedShort(speed), down: false, title: t('display.speed_current', { speed: speedLabel(speed) }) }] : [];
 
         qa('[data-link-speed]').forEach(element => {
-            element.textContent = text;
-            element.hidden = !text;
-            element.title = text ? t('display.speed_current', { speed: speedLabel(state.status.netdev_speed) }) : '';
+            element.replaceChildren(...items.map(item => {
+                const span = document.createElement('span');
+                span.textContent = item.text;
+                span.title = item.title;
+                if (item.down) span.className = 'down';
+                return span;
+            }));
+            element.hidden = !items.length;
         });
+    }
+
+    function portTitle(port) {
+        const max = port.max ? ` (${t('fact.port_max', { speed: speedLabel(port.max) })})` : '';
+        return `${port.name}: ${port.link ? (port.speed > 0 ? speedLabel(port.speed) : t('fact.port_up')) : t('fact.port_down')}${max}`;
     }
 
     function renderGeneral() {

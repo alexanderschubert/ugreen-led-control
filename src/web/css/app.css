@@ -987,9 +987,18 @@
 
 /* The negotiated link speed right after "LAN". */
 .ulc-nas-front .ulc-link-speed {
+    display: inline-flex;
+    gap: 10px;
     margin-left: -4px;
     color: #aab4bf;
     font-weight: 700;
+    white-space: nowrap;
+}
+
+/* A port without link: dimmed, with its maximum speed and a cross. */
+.ulc-nas-front .ulc-link-speed .down {
+    color: #6f7882;
+    font-weight: 500;
 }
 
 .ulc-nas-front .ulc-link-speed[hidden] {

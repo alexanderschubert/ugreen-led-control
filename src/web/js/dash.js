@@ -43,12 +43,31 @@
     // "2.5G", "1G", "100M": the negotiated link speed next to the LAN LED.
     const speedShort = mbps => mbps >= 1000 ? `${mbps / 1000}G` : mbps > 0 ? `${mbps}M` : '';
 
+    const speedName = mbps => mbps >= 1000 ? `${String(mbps / 1000)} Gbit/s` : `${mbps} Mbit/s`;
+
+    // "eth0 10G ✕" for a port without link, "eth1 2.5G" with one; one port: just the speed.
     function paintSpeed(root) {
-        const text = speedShort(Number(state.status.netdev_speed) || 0);
+        const ports = state.status.network_ports || [];
+        const speed = Number(state.status.netdev_speed) || 0;
+        const items = ports.length > 1
+            ? ports.map(port => ({
+                text: port.link
+                    ? `${port.name} ${speedShort(port.speed)}`.trim()
+                    : `${port.name} ${port.max ? speedShort(port.max) + ' ' : ''}\u2715`,
+                down: !port.link,
+                title: `${port.name}: ${port.link ? speedName(port.speed) : t('fact.port_down')}`
+            }))
+            : speed > 0 ? [{ text: speedShort(speed), down: false, title: speedName(speed) }] : [];
 
         root.querySelectorAll('[data-link-speed]').forEach(element => {
-            element.textContent = text;
-            element.hidden = !text;
+            element.replaceChildren(...items.map(item => {
+                const span = document.createElement('span');
+                span.textContent = item.text;
+                span.title = item.title;
+                if (item.down) span.className = 'down';
+                return span;
+            }));
+            element.hidden = !items.length;
         });
     }
 
