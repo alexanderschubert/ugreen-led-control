@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.22.1">
+<!ENTITY version   "0.22.2">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.22.2
+- Fix: with a bond (or bridge) the link speed colour and the speed shown on the LED settings page could be wrong, e.g. 10G with two 2.5G cables; it now uses the fastest cable that has a link
 
 ### 0.22.1
 - The About page is redone: icon, name, version and licence on top, then tiles for GitHub, the Unraid forum thread and "Report a problem", then protocol and thanks
@@ -193,7 +196,7 @@
 
 <FILE Name="&srcDIR;/backend/ugreen-led-ctl">
 <URL>&gitURL;/src/backend/ugreen-led-ctl</URL>
-<MD5>51e77763a9f618e34e0388d31a9f55b5</MD5>
+<MD5>fe956fc7cd3f91ea2c0510e532104ba0</MD5>
 </FILE>
 
 <!-- Static binary built by the "Tag release" workflow and attached to the release -->
