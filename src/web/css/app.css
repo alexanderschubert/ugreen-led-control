@@ -1148,6 +1148,86 @@
     height: 6px;
 }
 
+/* ---------- About ---------- */
+
+.ulc .ulc-about h2 {
+    margin: 0 0 4px;
+    font-size: 24px;
+}
+
+.ulc-about-head {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 22px;
+}
+
+.ulc-about-icon {
+    flex: none;
+    width: 76px;
+    height: 76px;
+    border-radius: 18px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
+}
+
+.ulc-about-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.ulc-about-badges .ulc-badge {
+    padding: 1px 10px;
+    font-size: 12px;
+}
+
+.ulc-about-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.ulc .ulc-link-tile {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    padding: 14px 16px;
+    border: 1px solid var(--ulc-border);
+    border-radius: 12px;
+    background: var(--ulc-card-2);
+    color: var(--ulc-text);
+    text-decoration: none;
+    transition: border-color .15s, background .15s;
+}
+
+.ulc .ulc-link-tile:hover {
+    border-color: var(--ulc-accent);
+    background: rgba(47, 124, 246, .08);
+}
+
+.ulc .ulc-link-tile svg {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    color: var(--ulc-accent);
+}
+
+.ulc .ulc-link-tile svg.ulc-ico-fill {
+    fill: currentColor;
+    stroke: none;
+}
+
+.ulc-link-tile strong {
+    display: block;
+    font-size: 15px;
+}
+
+.ulc-link-tile small {
+    color: var(--ulc-muted);
+}
+
 /* ---------- Facts ---------- */
 
 .ulc-facts {
@@ -1365,6 +1445,10 @@
 
 .ulc[data-theme="light"] a {
     color: #1f63d1;
+}
+
+.ulc[data-theme="light"] .ulc-link-tile {
+    color: var(--ulc-text);
 }
 
 .ulc[data-theme="light"] code {
