@@ -479,7 +479,7 @@
         qa('[data-link-speed]').forEach(element => {
             element.replaceChildren(...items.map(item => {
                 const span = document.createElement('span');
-                span.innerHTML = PORT_ICON;
+                span.innerHTML = item.down ? PORT_ICON_DOWN : PORT_ICON;
                 span.append(document.createTextNode(item.text));
                 span.title = item.title;
                 if (item.down) span.className = 'down';
@@ -545,6 +545,7 @@
     const SPEED_DEFAULTS = { 10: '#ff3b30', 100: '#ff8c00', 1000: '#ffd60a', 2500: '#00c853', 5000: '#00c8c8', 10000: '#0078ff' };
 
     // An RJ45 socket: the network ports next to the LAN LED.
+    const PORT_ICON_DOWN = '<svg class="ulc-port-ico" viewBox="0 0 20 16" aria-hidden="true"><rect x="1.5" y="2.5" width="17" height="12" rx="1.8"/><path d="M7.5 2.5V1.2h5v1.3"/><path d="M7.4 6.4l5.2 5.2M12.6 6.4l-5.2 5.2"/></svg>';
     const PORT_ICON = '<svg class="ulc-port-ico" viewBox="0 0 20 16" aria-hidden="true"><rect x="1.5" y="2.5" width="17" height="12" rx="1.8"/><path d="M7.5 2.5V1.2h5v1.3"/><path d="M5 8v4M6.6 8v4M8.2 8v4M9.8 8v4M11.4 8v4M13 8v4M14.6 8v4"/></svg>';
 
     // "2.5G", "1G", "100M": the negotiated link speed next to the LAN LED.

@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.21.2">
+<!ENTITY version   "0.21.3">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.21.3
+- A network port without link is drawn as a dimmed socket with a cross, so it differs from a connected one by its shape and not only by its colour
 
 ### 0.21.2
 - The network port sockets take the colour set for their speed when "Network LED by link speed" is on (10G blue, 1G yellow, ...); with the option off they stay green
@@ -232,12 +235,12 @@
 
 <FILE Name="&srcDIR;/js/app.js">
 <URL>&gitURL;/src/web/js/app.js</URL>
-<MD5>864991683f1c452763b8f49b4c035071</MD5>
+<MD5>9d86640c64c2bc853049fcf32e58e3a9</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/dash.js">
 <URL>&gitURL;/src/web/js/dash.js</URL>
-<MD5>44febc026677500afff92a74fdada880</MD5>
+<MD5>d0ea1f61348ed9c35fb85547410b97ca</MD5>
 </FILE>
 
 <!-- ========================================================= -->
