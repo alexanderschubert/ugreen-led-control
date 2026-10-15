@@ -48,6 +48,19 @@
 
     const speedName = mbps => mbps >= 1000 ? `${String(mbps / 1000)} Gbit/s` : `${mbps} Mbit/s`;
 
+    const LINK_STEPS = [10, 100, 1000, 2500, 5000, 10000];
+    const STEP_DEFAULTS = { 10: '#ff3b30', 100: '#ff8c00', 1000: '#ffd60a', 2500: '#00c853', 5000: '#00c8c8', 10000: '#0078ff' };
+
+    // Colour of a port's socket: the colour set for its speed when "by link speed" is on.
+    function portColor(port) {
+        if (!port.link || !state.status.netdev_speed_enabled) return '';
+
+        const step = LINK_STEPS.filter(s => port.speed >= s).pop() || LINK_STEPS[0];
+        const rgb = (state.status.netdev_speed_colors || {})[step];
+
+        return rgb ? rgbToHex(rgb) : STEP_DEFAULTS[step];
+    }
+
     // "eth0 10G ✕" for a port without link, "eth1 2.5G" with one; one port: just the speed.
     function paintSpeed(root) {
         const ports = state.status.network_ports || [];
@@ -56,9 +69,10 @@
             ? ports.map(port => ({
                 text: speedShort(port.link ? port.speed : port.max),
                 down: !port.link,
+                color: portColor(port),
                 title: `${port.name}: ${port.link ? speedName(port.speed) : t('fact.port_down')}`
             }))
-            : speed > 0 ? [{ text: speedShort(speed), down: false, title: speedName(speed) }] : [];
+            : speed > 0 ? [{ text: speedShort(speed), down: false, color: portColor({ link: true, speed }), title: speedName(speed) }] : [];
 
         root.querySelectorAll('[data-link-speed]').forEach(element => {
             element.replaceChildren(...items.map(item => {
@@ -67,6 +81,7 @@
                 span.append(document.createTextNode(item.text));
                 span.title = item.title;
                 if (item.down) span.className = 'down';
+                if (item.color) span.style.setProperty('--port', item.color);
                 return span;
             }));
             element.hidden = !items.length;

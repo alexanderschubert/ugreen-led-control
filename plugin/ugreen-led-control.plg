@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.21.1">
+<!ENTITY version   "0.21.2">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.21.2
+- The network port sockets take the colour set for their speed when "Network LED by link speed" is on (10G blue, 1G yellow, ...); with the option off they stay green
 
 ### 0.21.1
 - The network ports next to the LAN LED are drawn as RJ45 sockets: green with the speed they run at ("2.5G"), dimmed with the speed they support when there is no link ("10G")
@@ -219,7 +222,7 @@
 
 <FILE Name="&srcDIR;/css/app.css">
 <URL>&gitURL;/src/web/css/app.css</URL>
-<MD5>8ab6b46c48ac197e3e4a749e44703e50</MD5>
+<MD5>1d6e00359c9f6b7fec37d7b43a074676</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/i18n.js">
@@ -229,12 +232,12 @@
 
 <FILE Name="&srcDIR;/js/app.js">
 <URL>&gitURL;/src/web/js/app.js</URL>
-<MD5>8f1c42400e69f9efc4984065ae344bd6</MD5>
+<MD5>864991683f1c452763b8f49b4c035071</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/dash.js">
 <URL>&gitURL;/src/web/js/dash.js</URL>
-<MD5>2e3c5a052b84f2be3fb3a1abdc89c930</MD5>
+<MD5>44febc026677500afff92a74fdada880</MD5>
 </FILE>
 
 <!-- ========================================================= -->
