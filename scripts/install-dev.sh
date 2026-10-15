@@ -34,9 +34,12 @@ mkdir -p "$DEST/js"
 mkdir -p "$DEST/include"
 mkdir -p "$DEST/images"
 mkdir -p "$DEST/icons"
+mkdir -p "$DEST/event"
 
 cp "$ROOT/src/backend/ugreen-led-ctl" \
    "$DEST/backend/ugreen-led-ctl"
+
+cp "$ROOT/src/event/stopping" "$DEST/event/stopping"
 
 cp "$ROOT/src/web/api.php" \
    "$DEST/api.php"
@@ -73,7 +76,7 @@ else
     exit 1
 fi
 
-chmod 755 "$DEST/backend/ugreen-led-ctl" "$DEST/backend/ugreen-led-i2c"
+chmod 755 "$DEST/backend/ugreen-led-ctl" "$DEST/backend/ugreen-led-i2c" "$DEST/event/stopping"
 chmod 644 "$DEST/api.php"
 chmod 644 "$DEST/UGREENLEDControl.page"
 chmod 644 "$DEST/css/app.css"

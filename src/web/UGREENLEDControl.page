@@ -407,6 +407,36 @@ window.UGREEN_LED_LANG_SETTING = <?= json_encode($ulc_lang_setting) ?>;
             <div id="ulc-alert-color"></div>
         </div>
     </article>
+    <article class="ulc-card" id="ulc-shutdown-card">
+        <h2 data-i18n="shutdown.title">Herunterfahren und Neustart</h2>
+        <p class="ulc-muted" data-i18n="shutdown.intro">Die Power-LED zeigt, dass das NAS herunterfährt oder neu startet – ab dem Moment, in dem Unraid das Array stoppt, bis das Gerät aus ist oder wieder hochfährt.</p>
+
+        <label class="ulc-switch-row">
+            <span class="ulc-switch">
+                <input type="checkbox" id="ulc-shutdown-enabled">
+                <span></span>
+            </span>
+            <span>
+                <strong data-i18n="shutdown.enable">Beim Herunterfahren und Neustart signalisieren</strong>
+                <small data-i18n="shutdown.enable_hint">Gilt nur, wenn das NAS wirklich herunterfährt oder neu startet, nicht beim bloßen Stoppen des Arrays. Der Nachtmodus gilt weiter.</small>
+            </span>
+        </label>
+
+        <div class="ulc-form">
+            <label data-i18n="shutdown.color">Farbe</label>
+            <div id="ulc-shutdown-color"></div>
+
+            <label for="ulc-shutdown-effect" data-i18n="shutdown.effect">Darstellung</label>
+            <select id="ulc-shutdown-effect">
+                <option value="blink" data-i18n="shutdown.effect_blink">Blinken</option>
+                <option value="breath" data-i18n="shutdown.effect_breath">Atmen</option>
+            </select>
+        </div>
+
+        <div class="ulc-actions">
+            <button type="button" class="ulc-btn" id="ulc-shutdown-test"><span class="ulc-ico" data-ulc-icon="play"></span><span data-i18n="shutdown.test">Testen (6 Sekunden)</span></button>
+        </div>
+    </article>
     <article class="ulc-card">
         <h2 data-i18n="language.title">Sprache</h2>
         <div class="ulc-field-row">

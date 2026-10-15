@@ -11,6 +11,7 @@ LED control for UGREEN DX/DXP NAS devices on Unraid 7: colour, brightness and ef
 - **Network LED**: blinks with traffic, shows only the link, or stays manual; optionally coloured by link speed (10 Mbit/s to 10 Gbit/s, one colour per speed), so a link that negotiated less than expected stands out. The network ports are also drawn next to the LAN LED in the case picture and the dashboard tile, as RJ45 sockets with the speed they run at, or dimmed with the speed they support when unplugged
 - **Night mode**: dim or switch off at fixed times, also across midnight
 - **Unraid alerts**: the power LED blinks while there are unread warnings or alerts
+- **Shutdown and reboot**: the power LED blinks or breathes from the moment the array is stopped by a shutdown or reboot, in a colour you choose (with a test button)
 - **Identify a bay**: blink one bay white before you pull a disk
 - **Dashboard tile**: the live LEDs of every bay in a compact tile, optionally with temperatures
 - **Interface**: English, German and Spanish; dark, light or "same as Unraid"; every setting saves on change and survives a reboot

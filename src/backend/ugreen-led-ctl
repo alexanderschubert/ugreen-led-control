@@ -20,6 +20,7 @@ FX_PIDFILE="${UGREEN_FX_PIDFILE:-/var/run/ugreen-led-control-fx.pid}"
 FX_LOG="${UGREEN_FX_LOG:-/var/run/ugreen-led-control-fx.log}"
 IDENTIFY_PREFIX="${UGREEN_IDENTIFY_PREFIX:-/var/run/ugreen-led-control.identify-}"
 ALERT_STATE="${UGREEN_ALERT_STATE:-/var/run/ugreen-led-control.alert}"
+SHUTDOWN_MARK="${UGREEN_SHUTDOWN_MARK:-/var/run/ugreen-led-control.shutdown}"
 DYNAMIX_CFG="${UGREEN_DYNAMIX_CFG:-/boot/config/plugins/dynamix/dynamix.cfg}"
 
 DEFAULT_DISK_COLOR="255 160 0"
@@ -27,6 +28,7 @@ DEFAULT_NETDEV_COLOR="0 200 83"
 DEFAULT_ERROR_COLOR="255 59 48"
 DEFAULT_SYNC_COLOR="0 120 255"
 DEFAULT_SMART_COLOR="255 140 0"
+DEFAULT_SHUTDOWN_COLOR="255 140 0"
 
 # Network LED by link speed (Mbit/s -> colour); a speed uses the largest step at or below it.
 SPEED_STEPS="10 100 1000 2500 5000 10000"
@@ -81,6 +83,7 @@ Usage:
   ugreen-led-ctl schedule [--force]   (night mode and Unraid alerts; run every minute by cron)
   ugreen-led-ctl alerts [--force]     (Unraid alerts on the power LED only)
   ugreen-led-ctl fx start|stop|restart|status   (rainbow/temperature from leds.cfg)
+  ugreen-led-ctl shutdown [--test]               (power LED signals shutdown/reboot; --test shows it for 6 s)
   ugreen-led-ctl smbus                           (load the SMBus driver, show the adapter or why it is missing)
   ugreen-led-ctl identify <diskN> [seconds]      (blink a bay white, default 30 s)
   ugreen-led-ctl identify-stop <diskN>
@@ -276,6 +279,9 @@ status() {
     printf '  "alert_enabled": %s,\n' "$([ "$(config_value alert_enabled)" = 1 ] && echo true || echo false)"
     printf '  "alert_level": "%s",\n' "$(config_value alert_level | grep . || echo warning)"
     printf '  "alert_color": "%s",\n' "$(config_value alert_color | grep . || echo "$DEFAULT_ERROR_COLOR")"
+    printf '  "shutdown_blink": %s,\n' "$([ "$(config_value shutdown_blink)" = 1 ] && echo true || echo false)"
+    printf '  "shutdown_color": "%s",\n' "$(config_value shutdown_color | grep . || echo "$DEFAULT_SHUTDOWN_COLOR")"
+    printf '  "shutdown_effect": "%s",\n' "$(config_value shutdown_effect | grep -x 'blink\|breath' || echo blink)"
     printf '  "alert_count": %s,\n' "$(unread_alerts)"
     printf '  "alert_active": %s,\n' "$([ "$(cat "$ALERT_STATE" 2>/dev/null)" = alert ] && echo true || echo false)"
     printf '  "fx_speed": %s,\n' "$(config_value fx_speed | grep . || echo 2)"
@@ -580,6 +586,57 @@ restore_power() {
         *,power,*) [ -n "$(config_value fx_name)" ] && ! fx_running && fx_start >/dev/null 2>&1 ;;
     esac
     return 0
+}
+
+# The power LED while the NAS shuts down or reboots. emhttp calls event/stopping at the
+# start of every array stop; only runlevel 0 (halt) or 6 (reboot) means the system goes
+# down, a plain array stop leaves the LED alone. "--test" shows it for a few seconds.
+shutdown_signal() {
+    local test="${1:-}"
+    local effect
+    local color
+    local brightness
+    local night=0
+
+    if [ "$test" != "--test" ]; then
+        [ "$(config_value shutdown_blink)" = "1" ] || return 0
+
+        case "$(runlevel 2>/dev/null | awk '{print $2}')" in
+            0|6) ;;
+            *) return 0 ;;
+        esac
+
+        # From here on nothing else writes the power LED (night mode and alert ticks check this).
+        : > "$SHUTDOWN_MARK"
+        fx_stop
+    fi
+
+    effect="$(config_value shutdown_effect | grep -x 'blink\|breath' || echo blink)"
+    color="$(config_value shutdown_color | grep . || echo "$DEFAULT_SHUTDOWN_COLOR")"
+    is_night && night=1
+    brightness="$(effective_brightness "$(saved_brightness power)" "$night")"
+
+    if [ "$brightness" -eq 0 ]; then
+        tool set power off >/dev/null 2>&1
+        return 0
+    fi
+
+    # shellcheck disable=SC2086
+    tool set power color $color >/dev/null 2>&1
+    tool set power brightness "$brightness" >/dev/null 2>&1
+    if [ "$effect" = "breath" ]; then
+        tool set power breath 1200 1200 >/dev/null 2>&1
+    else
+        tool set power blink 500 500 >/dev/null 2>&1
+    fi
+
+    if [ "$test" = "--test" ]; then
+        # Back to the normal look after a few seconds.
+        setsid bash -c 'sleep 6; exec "$1" power-restore' _ "$(readlink -f "$0")" </dev/null >/dev/null 2>&1 &
+        echo "Power LED signals shutdown for 6 s."
+    else
+        log "Shutting down or rebooting: power LED signals it"
+    fi
 }
 
 # While alerts are unread the power LED blinks in the alert colour; it is
@@ -1477,8 +1534,10 @@ case "${1:-help}" in
     apply) apply_config ;;
     bays) bays_json ;;
     daemon) daemon_command "${2:-status}" ;;
-    schedule) schedule_tick "${2:-}"; alert_tick ;;
-    alerts) alert_tick "${2:-}" ;;
+    schedule) [ -e "$SHUTDOWN_MARK" ] || { schedule_tick "${2:-}"; alert_tick; } ;;
+    alerts) [ -e "$SHUTDOWN_MARK" ] || alert_tick "${2:-}" ;;
+    shutdown) shutdown_signal "${2:-}" ;;
+    power-restore) restore_power; alert_tick --force ;;
     fx) fx_command "${2:-status}" ;;
     identify) [ $# -ge 2 ] || { echo "Usage: $0 identify <diskN> [seconds]" >&2; exit 2; }; identify_start "$2" "${3:-30}" ;;
     identify-stop) [ $# -ge 2 ] || { echo "Usage: $0 identify-stop <diskN>" >&2; exit 2; }; identify_stop "$2" "${3:-}" ;;
