@@ -403,7 +403,7 @@
                 '</div>' +
                 '<div class="ulc-nas-front">' +
                 '<span class="ulc-led" data-led="power"></span><span class="ulc-led-label">Power</span>' +
-                '<span class="ulc-led" data-led="netdev"></span><span class="ulc-led-label">LAN</span>' +
+                '<span class="ulc-led" data-led="netdev"></span><span class="ulc-led-label">LAN</span><span class="ulc-led-label ulc-link-speed" data-link-speed hidden></span>' +
                 '<span class="ulc-nas-brand">UGREEN</span>' +
                 '</div>';
         });
@@ -450,7 +450,19 @@
         return (state.status.night || statusMode()) && saved != null ? saved : state.leds[led]?.brightness || 0;
     }
 
+    function renderLinkSpeed() {
+        const text = speedShort(Number(state.status.netdev_speed) || 0);
+
+        qa('[data-link-speed]').forEach(element => {
+            element.textContent = text;
+            element.hidden = !text;
+            element.title = text ? t('display.speed_current', { speed: speedLabel(state.status.netdev_speed) }) : '';
+        });
+    }
+
     function renderGeneral() {
+        renderLinkSpeed();
+
         const values = state.order.map(dayLevel);
         const max = Math.max(0, ...values);
         const note = q('#ulc-night-note');
@@ -496,6 +508,9 @@
     // Network LED by link speed (Mbit/s); the backend picks the largest step at or below the speed.
     const LINK_SPEEDS = [10, 100, 1000, 2500, 5000, 10000];
     const SPEED_DEFAULTS = { 10: '#ff3b30', 100: '#ff8c00', 1000: '#ffd60a', 2500: '#00c853', 5000: '#00c8c8', 10000: '#0078ff' };
+
+    // "2.5G", "1G", "100M": the negotiated link speed next to the LAN LED.
+    const speedShort = mbps => mbps >= 1000 ? `${mbps / 1000}G` : mbps > 0 ? `${mbps}M` : '';
 
     const speedLabel = mbps => mbps >= 1000
         ? `${String(mbps / 1000).replace('.', LANG === 'en' ? '.' : ',')} Gbit/s`

@@ -985,6 +985,17 @@
     text-transform: uppercase;
 }
 
+/* The negotiated link speed right after "LAN". */
+.ulc-nas-front .ulc-link-speed {
+    margin-left: -4px;
+    color: #aab4bf;
+    font-weight: 700;
+}
+
+.ulc-nas-front .ulc-link-speed[hidden] {
+    display: none;
+}
+
 .ulc-nas-brand {
     margin-left: auto;
     color: #8c949d;

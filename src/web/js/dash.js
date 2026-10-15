@@ -40,6 +40,18 @@
         return '#' + parts.slice(0, 3).map(n => Math.max(0, Math.min(255, n)).toString(16).padStart(2, '0')).join('');
     }
 
+    // "2.5G", "1G", "100M": the negotiated link speed next to the LAN LED.
+    const speedShort = mbps => mbps >= 1000 ? `${mbps / 1000}G` : mbps > 0 ? `${mbps}M` : '';
+
+    function paintSpeed(root) {
+        const text = speedShort(Number(state.status.netdev_speed) || 0);
+
+        root.querySelectorAll('[data-link-speed]').forEach(element => {
+            element.textContent = text;
+            element.hidden = !text;
+        });
+    }
+
     const disks = () => (state.status.leds || []).filter(led => led.startsWith('disk'));
 
     function build(nas) {
@@ -62,7 +74,7 @@
             '</div>' +
             '<div class="ulc-nas-front">' +
             '<span class="ulc-led" data-led="power"></span><span class="ulc-led-label">Power</span>' +
-            '<span class="ulc-led" data-led="netdev"></span><span class="ulc-led-label">LAN</span>' +
+            '<span class="ulc-led" data-led="netdev"></span><span class="ulc-led-label">LAN</span><span class="ulc-led-label ulc-link-speed" data-link-speed hidden></span>' +
             '<span class="ulc-nas-brand">UGREEN</span>' +
             '</div>';
     }
@@ -143,6 +155,7 @@
             paintHeader(true);
             paintBays(root);
             paintLeds(root);
+            paintSpeed(root);
         } catch (error) {
             paintHeader(false);
         }
