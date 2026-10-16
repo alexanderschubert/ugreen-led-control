@@ -950,7 +950,8 @@ network_device() {
     local dev
     local port
 
-    dev="$(ip route show default 2>/dev/null | sed -n 's/.* dev \([^ ]*\).*/\1/p' | head -n 1)"
+    # Unraid adds a second default route over shim-br0 (a macvlan for Docker): not the uplink.
+    dev="$(ip route show default 2>/dev/null | sed -n 's/.* dev \([^ ]*\).*/\1/p' | grep -v '^shim-' | head -n 1)"
 
     if [ -n "$dev" ] && [ -d "$SYS_NET/$dev/brif" ]; then
         for port in "$SYS_NET/$dev/brif"/*; do
@@ -975,30 +976,36 @@ network_ok() {
 }
 
 # Negotiated speed in Mbit/s, 0 when unknown (no link, or the driver doesn't say).
-# A bond or bridge reports an aggregate (e.g. the sum of its members) or no value at
-# all, which isn't the speed of any cable: it uses its fastest member with a link.
+# A bond, bridge or VLAN reports an aggregate or a made-up value (a bridge with a VM
+# says 10000), which isn't the speed of any cable: it follows its members down to the
+# physical ports and uses the fastest one with a link.
 link_speed() {
     local dev="$1"
+    local depth="${2:-0}"
     local speed
     local best=0
     local file
+    local member
     local members=0
 
-    for file in "$SYS_NET/$dev"/lower_*/speed; do
-        [ -e "$file" ] || continue
-        members=1
-        speed="$(cat "$file" 2>/dev/null)"
-        case "$speed" in ''|*[!0-9]*) continue ;; esac
-        [ "$speed" -gt "$best" ] && best="$speed"
-    done
+    if [ "$depth" -lt 5 ]; then
+        for file in "$SYS_NET/$dev"/lower_*; do
+            [ -e "$file" ] || continue
+            member="${file##*/lower_}"
+            case "$member" in veth*|vnet*|tap*) continue ;; esac
+            members=1
+            speed="$(link_speed "$member" $((depth + 1)))"
+            [ "$speed" -gt "$best" ] && best="$speed"
+        done
+    fi
     [ "$best" -gt 0 ] && { echo "$best"; return; }
+    [ "$members" = 1 ] && { echo 0; return; }
 
     speed="$(cat "$SYS_NET/$dev/speed" 2>/dev/null)"
     case "$speed" in
-        ''|*[!0-9]*) ;;
-        *) [ "$members" = 0 ] && [ "$speed" -gt 0 ] && { echo "$speed"; return; } ;;
+        ''|*[!0-9]*) echo 0 ;;
+        *) [ "$speed" -gt 0 ] && echo "$speed" || echo 0 ;;
     esac
-    echo 0
 }
 
 # Highest speed (Mbit/s) a port supports according to ethtool, 0 when unknown.

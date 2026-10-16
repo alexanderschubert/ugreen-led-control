@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.22.2">
+<!ENTITY version   "0.22.3">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.22.3
+- Fix: with a second default route over Unraid's shim-br0 (VMs or Docker networks on br0), the link speed was read from that virtual device and showed 10G with 2.5G cables, and the network activity blink watched the wrong counters; the uplink is now taken from the real route and its speed from the physical ports below bridges, bonds and VLANs
 
 ### 0.22.2
 - Fix: with a bond (or bridge) the link speed colour and the speed shown on the LED settings page could be wrong, e.g. 10G with two 2.5G cables; it now uses the fastest cable that has a link
@@ -196,7 +199,7 @@
 
 <FILE Name="&srcDIR;/backend/ugreen-led-ctl">
 <URL>&gitURL;/src/backend/ugreen-led-ctl</URL>
-<MD5>fe956fc7cd3f91ea2c0510e532104ba0</MD5>
+<MD5>34215e2fcc9361780ba7d08c39a1e7d3</MD5>
 </FILE>
 
 <!-- Static binary built by the "Tag release" workflow and attached to the release -->
