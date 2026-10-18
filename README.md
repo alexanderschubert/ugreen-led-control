@@ -55,9 +55,16 @@ The LED controller (I2C address 0x3a on the SMBus I801 adapter) is the same acro
 | DXP4800 / Plus / Pro | ata1 … ata4 | confirmed by users |
 | DX4600 Pro | ata1 … ata4 | verified by miskcoo |
 | DX4700, DXP2800 | ata1 … ataN | reported by users |
+| DXP480T Plus | – | power LED only: set to static white (untested, after ich777's driver) |
 | other models | ata1 … ataN | guessed |
 
-The System page shows which applies; "Identify" on the Drives page checks it. Not supported: DXP2800 V1.2 and the GT models, which miskcoo lists as experimental.
+The System page shows which applies; "Identify" on the Drives page checks it. Not supported: DXP2800 V1.2 and the GT models, which miskcoo lists as experimental. The DXP480T Plus only has a power LED on a simpler chip (address 0x26); the plugin sets it to static white and offers no more.
+
+If your model isn't found, this lists the addresses that answer on every I²C bus (it only reads):
+
+```
+/usr/local/emhttp/plugins/ugreen-led-control/backend/ugreen-led-i2c scan all
+```
 
 ## Install
 

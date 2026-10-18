@@ -23,6 +23,7 @@ const (
 	smbusWrite = 0
 	smbusRead  = 1
 
+	smbusByte         = 1
 	smbusByteData     = 2
 	smbusI2CBlockData = 8
 	smbusBlockMax     = 32
@@ -74,6 +75,11 @@ func findBus() (string, error) {
 }
 
 func openBus(path string, force bool) (*bus, error) {
+	return openBusAt(path, controllerAddr, force)
+}
+
+// openBusAt opens the bus and selects one device address on it.
+func openBusAt(path string, addr uintptr, force bool) (*bus, error) {
 	if path == "" {
 		found, err := findBus()
 		if err != nil {
@@ -103,11 +109,11 @@ func openBus(path string, force bool) (*bus, error) {
 		request = ioctlSlaveForce
 	}
 
-	if err := ioctl(file.Fd(), request, controllerAddr); err != nil {
+	if err := ioctl(file.Fd(), request, addr); err != nil {
 		file.Close()
 		lock.Close()
 		if errors.Is(err, syscall.EBUSY) {
-			return nil, fmt.Errorf("address 0x3a on %s is used by a kernel driver (led_ugreen loaded?); unload it or pass --force", path)
+			return nil, fmt.Errorf("address 0x%02x on %s is used by a kernel driver (led_ugreen loaded?); unload it or pass --force", addr, path)
 		}
 		return nil, err
 	}
@@ -209,4 +215,70 @@ func (b *bus) status(name string) (ledStatus, error) {
 	}
 
 	return ledStatus{}, fmt.Errorf("%s: %w", name, err)
+}
+
+// writeByteData is "i2cset -y <bus> <addr> <register> <value> b".
+func (b *bus) writeByteData(register, value byte) error {
+	var data [smbusBlockMax + 2]byte
+	data[0] = value
+
+	return b.smbus(smbusWrite, register, smbusByteData, &data)
+}
+
+// scanBuses lists the I2C buses to scan: the named one, or with all every /dev/i2c-N.
+func scanBuses(path string, all bool) ([]string, error) {
+	if all {
+		paths, _ := filepath.Glob("/dev/i2c-*")
+		if len(paths) == 0 {
+			return nil, errors.New("no /dev/i2c-* found; load the i2c-dev module (modprobe i2c-dev)")
+		}
+		return paths, nil
+	}
+	if path == "" {
+		found, err := findBus()
+		if err != nil {
+			return nil, err
+		}
+		path = found
+	}
+	return []string{path}, nil
+}
+
+// scanBus reads one byte from every address 0x03..0x77 (like "i2cdetect -y -r") and
+// returns the ones that answer; busy are addresses a kernel driver already holds.
+// It only reads, nothing is written to any device.
+func scanBus(path string) (found, busy []string, err error) {
+	lock, err := os.OpenFile(lockFile, os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer lock.Close()
+	if err := syscall.Flock(int(lock.Fd()), syscall.LOCK_EX); err != nil {
+		return nil, nil, err
+	}
+
+	file, err := os.OpenFile(path, os.O_RDWR, 0)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer file.Close()
+
+	for addr := uintptr(0x03); addr <= 0x77; addr++ {
+		name := fmt.Sprintf("0x%02x", addr)
+		if err := ioctl(file.Fd(), ioctlSlave, addr); err != nil {
+			if errors.Is(err, syscall.EBUSY) {
+				busy = append(busy, name)
+			}
+			continue
+		}
+
+		var data [smbusBlockMax + 2]byte
+		args := smbusIoctlData{readWrite: smbusRead, command: 0, size: smbusByte, data: &data}
+		if ioctl(file.Fd(), ioctlSMBus, uintptr(unsafe.Pointer(&args))) == nil {
+			found = append(found, name)
+		}
+		runtime.KeepAlive(&data)
+	}
+
+	return found, busy, nil
 }
