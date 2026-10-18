@@ -203,13 +203,13 @@
 
 <FILE Name="&srcDIR;/backend/ugreen-led-ctl">
 <URL>&gitURL;/src/backend/ugreen-led-ctl</URL>
-<MD5>34215e2fcc9361780ba7d08c39a1e7d3</MD5>
+<MD5>347120dd379333a9615faae386117bcc</MD5>
 </FILE>
 
 <!-- Static binary built by the "Tag release" workflow and attached to the release -->
 <FILE Name="&srcDIR;/backend/ugreen-led-i2c">
 <URL>&releaseURL;/ugreen-led-i2c</URL>
-<MD5>538e96c66853849de3fdedd8b32f667d</MD5>
+<MD5>18abf6dcb6f320cd8cb61e7381d695c7</MD5>
 </FILE>
 
 <!-- Called by emhttp at the start of every array stop (power LED on shutdown or reboot) -->
