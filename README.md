@@ -1,5 +1,14 @@
 # UGREEN LED Control for Unraid
 
+[![Release](https://img.shields.io/github/v/release/alexanderschubert/ugreen-led-control?color=0078ff&label=release)](https://github.com/alexanderschubert/ugreen-led-control/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/alexanderschubert/ugreen-led-control/total?color=00c853)](https://github.com/alexanderschubert/ugreen-led-control/releases)
+[![I2C tool](https://img.shields.io/github/actions/workflow/status/alexanderschubert/ugreen-led-control/i2c.yml?branch=main&label=build)](https://github.com/alexanderschubert/ugreen-led-control/actions/workflows/i2c.yml)
+[![Unraid](https://img.shields.io/badge/Unraid-7.0%2B-f15a2c)](https://unraid.net)
+[![License: MIT](https://img.shields.io/github/license/alexanderschubert/ugreen-led-control?color=lightgrey)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/alexanderschubert/ugreen-led-control?style=flat&color=ffd60a)](https://github.com/alexanderschubert/ugreen-led-control/stargazers)
+[![Issues](https://img.shields.io/github/issues/alexanderschubert/ugreen-led-control?color=ff8c00)](https://github.com/alexanderschubert/ugreen-led-control/issues)
+[![Unraid forum](https://img.shields.io/badge/support-Unraid%20forum-f15a2c)](https://forums.unraid.net/topic/200791-plugin-ugreen-led-control-led-control-for-ugreen-dxdxp-nas/)
+
 LED control for UGREEN DX/DXP NAS devices on Unraid 7: colour, brightness and effect for every front LED, and a status mode that turns the bay and network LEDs into a live view of your array. Developed on a DXP6800 Pro, confirmed by users on the DXP4800 family and the DXP8800 Plus.
 
 ![Overview](docs/screenshots/overview.png)
