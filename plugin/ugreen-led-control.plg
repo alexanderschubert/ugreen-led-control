@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.22.3">
+<!ENTITY version   "0.23.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,10 @@
 >
 
 <CHANGES>
+
+### 0.23.0
+- New: DXP480T Plus (power LED only, controller at 0x26): the power LED is set to static white at boot, without a script or i2c-tools (register writes after ich777's driver; needs testing on the hardware)
+- New: `ugreen-led-i2c scan all` lists the addresses that answer on every I2C bus (read only), to find the controller of models the plugin doesn't know
 
 ### 0.22.3
 - Fix: with a second default route over Unraid's shim-br0 (VMs or Docker networks on br0), the link speed was read from that virtual device and showed 10G with 2.5G cables, and the network activity blink watched the wrong counters; the uplink is now taken from the real route and its speed from the physical ports below bridges, bonds and VLANs
@@ -199,13 +203,13 @@
 
 <FILE Name="&srcDIR;/backend/ugreen-led-ctl">
 <URL>&gitURL;/src/backend/ugreen-led-ctl</URL>
-<MD5>34215e2fcc9361780ba7d08c39a1e7d3</MD5>
+<MD5>347120dd379333a9615faae386117bcc</MD5>
 </FILE>
 
 <!-- Static binary built by the "Tag release" workflow and attached to the release -->
 <FILE Name="&srcDIR;/backend/ugreen-led-i2c">
 <URL>&releaseURL;/ugreen-led-i2c</URL>
-<MD5>538e96c66853849de3fdedd8b32f667d</MD5>
+<MD5>18abf6dcb6f320cd8cb61e7381d695c7</MD5>
 </FILE>
 
 <!-- Called by emhttp at the start of every array stop (power LED on shutdown or reboot) -->
@@ -346,6 +350,8 @@ if "${PLUGIN_DIR}/backend/ugreen-led-i2c" probe >/dev/null 2>&1; then
     if grep -q '^fx_name="[a-z]' "${BOOT_DIR}/leds.cfg" 2>/dev/null; then
         "${PLUGIN_DIR}/backend/ugreen-led-ctl" fx start 2>&1 | sed 's/^/[UGREEN LED Control] /'
     fi
+elif "${PLUGIN_DIR}/backend/ugreen-led-ctl" dxp480t >/dev/null 2>&1; then
+    log "DXP480T: the power LED is set to static white (the only LED of this model)."
 else
     log "WARNING: The LED controller does not answer on the SMBus; no LEDs available."
     "${PLUGIN_DIR}/backend/ugreen-led-ctl" smbus 2>&1 | sed 's/^/[UGREEN LED Control] /'

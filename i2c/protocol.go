@@ -225,3 +225,16 @@ func buildCommand(args []string) (byte, [4]byte, error) {
 		return command, periodParams(on, off), nil
 	}
 }
+
+// DXP480T Plus: address of the power LED controller and the register writes
+// (register, value) for a steady white LED: red off, white off, white on,
+// slow flash off, permanently on.
+const dxp480tAddr = 0x26
+
+var dxp480tWhite = [][2]byte{
+	{0xa0, 1},
+	{0xa0, 2},
+	{0xb1, 2},
+	{0x51, 0},
+	{0x50, 0},
+}

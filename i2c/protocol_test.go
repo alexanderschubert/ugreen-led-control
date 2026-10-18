@@ -120,3 +120,17 @@ func TestBuildCommand(t *testing.T) {
 		}
 	}
 }
+
+func TestDXP480TWhite(t *testing.T) {
+	// Same writes as `i2cset -y <bus> 0x26 <register> <value> b` in ich777's driver.
+	want := [][2]byte{{0xa0, 1}, {0xa0, 2}, {0xb1, 2}, {0x51, 0}, {0x50, 0}}
+
+	if dxp480tAddr != 0x26 || len(dxp480tWhite) != len(want) {
+		t.Fatalf("got address 0x%x and %d writes", dxp480tAddr, len(dxp480tWhite))
+	}
+	for i := range want {
+		if dxp480tWhite[i] != want[i] {
+			t.Errorf("write %d: got %x, want %x", i, dxp480tWhite[i], want[i])
+		}
+	}
+}

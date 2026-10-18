@@ -59,6 +59,15 @@ bay_count() {
     echo "${digit:-8}"
 }
 
+# DXP480T Plus: no controller at 0x3a, only a power LED on a simpler chip (0x26),
+# which the tool sets to static white. Fails on every other model.
+dxp480t_apply() {
+    case "$(product_name)" in
+        DXP480T*) tool dxp480t white ;;
+        *) return 1 ;;
+    esac
+}
+
 # The controller always knows disk1..disk8; only the bays the model has are real.
 supported_leds() {
     local i
@@ -85,6 +94,7 @@ Usage:
   ugreen-led-ctl fx start|stop|restart|status   (rainbow/temperature from leds.cfg)
   ugreen-led-ctl shutdown [--test]               (power LED signals shutdown/reboot; --test shows it for 6 s)
   ugreen-led-ctl smbus                           (load the SMBus driver, show the adapter or why it is missing)
+  ugreen-led-ctl dxp480t                         (DXP480T Plus only: power LED to static white)
   ugreen-led-ctl identify <diskN> [seconds]      (blink a bay white, default 30 s)
   ugreen-led-ctl identify-stop <diskN>
   ugreen-led-ctl on <led>
@@ -1530,6 +1540,7 @@ if [ -z "${UGREEN_LED_I2C:-}" ]; then
 fi
 
 case "${1:-help}" in
+    dxp480t) dxp480t_apply ;;
     smbus)
         if ensure_smbus; then
             echo "SMBus adapter: $(grep -H '^SMBus I801' /sys/bus/i2c/devices/i2c-*/name)"
