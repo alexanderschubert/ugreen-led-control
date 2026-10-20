@@ -77,13 +77,17 @@ If your model isn't found, this lists the addresses that answer on every I²C bu
 
 ## Install
 
-Unraid 7.0 or newer (developed and tested on 7.3.2 and later; reports from 7.0 to 7.3.1 are welcome). Plugins → Install Plugin:
+Unraid 7.0 or newer (developed and tested on 7.3.2 and later; reports from 7.0 to 7.3.1 are welcome).
+
+Easiest: search for **UGREEN LED Control** in the **Apps** tab (Community Applications) and click Install.
+
+Or by URL, under Plugins → Install Plugin:
 
 ```
 https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control/main/plugin/ugreen-led-control.plg
 ```
 
-The settings page is at Settings → UGREEN LED Control. If you use the `ugreenleds-driver` plugin, uninstall it first: both would write the same LEDs. The plugin is submitted to Community Applications.
+The settings page is at Settings → UGREEN LED Control. If you use the `ugreenleds-driver` plugin, uninstall it first: both would write the same LEDs.
 
 ## How it works
 
