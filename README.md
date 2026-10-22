@@ -53,6 +53,14 @@ Questions and problems: the [support thread in the Unraid forum](https://forums.
 /usr/local/emhttp/plugins/ugreen-led-control/backend/ugreen-led-i2c probe
 ```
 
+## Questions that come up
+
+- **Bay LEDs don't blink, standby and link speed colours have no effect.** The default mode on the Overview must be **Status-based**; in **Manual** the LEDs only show the colours you set.
+- **Switching on "by link speed" changes nothing.** The default colour of the network LED and the colour for 2.5G are both green. Check the line "Current link" under LED settings → Network LED and set the colour of that speed to something obvious.
+- **The LEDs go dark when disks sleep.** That is the setting "Disks in standby" (System page); choose Dimmed, Normal, Off or Pulse slowly.
+- **The LEDs on the RJ45 sockets stay lit when the NAS is off.** They belong to the network chip, not to the LED controller, and no software runs while the NAS is off, so the plugin can't change them. They usually stay lit because the port keeps its power for Wake-on-LAN: turn off the wake-up by LAN in the BIOS and, in Unraid, Wake-on-LAN for the port (`ethtool -s eth0 wol d`). You can't power on the NAS over the network afterwards.
+- **Nothing is found on my model.** `/usr/local/emhttp/plugins/ugreen-led-control/backend/ugreen-led-i2c scan all` lists the I²C addresses that answer (it only reads); please post the output in the forum thread.
+
 ## Supported models
 
 The LED controller (I2C address 0x3a on the SMBus I801 adapter) is the same across UGREEN's DX/DXP series. Bays are matched to disks by SATA port, after [miskcoo/ugreen_leds_controller](https://github.com/miskcoo/ugreen_leds_controller):
