@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.24.0">
+<!ENTITY version   "0.24.1">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.24.1
+- Built with Go 1.27.3; the I2C helper is a little simpler inside, with no change in behaviour
 
 ### 0.24.0
 - New: DXP4800 GT (the controller sits on an AMD DesignWare I2C controller; the helper drives it directly, no kernel module)
@@ -216,7 +219,7 @@
 <!-- Static binary built by the "Tag release" workflow and attached to the release -->
 <FILE Name="&srcDIR;/backend/ugreen-led-i2c">
 <URL>&releaseURL;/ugreen-led-i2c</URL>
-<MD5>7ba810f68e6cbe2494742b5da588c0c9</MD5>
+<MD5>5d519b134317e503d7983bfe7f499b96</MD5>
 </FILE>
 
 <!-- Called by emhttp at the start of every array stop (power LED on shutdown or reboot) -->
