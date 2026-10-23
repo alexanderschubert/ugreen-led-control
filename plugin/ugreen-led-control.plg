@@ -26,6 +26,7 @@
 <CHANGES>
 
 ### 0.23.1
+- New: two switches in the status display (System page): "Show disk errors" and "Blink on disk activity". With SMART warnings, parity check and the disk temperature switched off as well, every bay keeps just the colour set for it (on by default, so nothing changes)
 - New: in the LED tables a bay that currently shows the SMART warning or the error colour says so under its name, because in status mode these win over the colour set there (a bay kept returning to orange, the SMART warning colour)
 
 ### 0.23.0
@@ -206,7 +207,7 @@
 
 <FILE Name="&srcDIR;/backend/ugreen-led-ctl">
 <URL>&gitURL;/src/backend/ugreen-led-ctl</URL>
-<MD5>347120dd379333a9615faae386117bcc</MD5>
+<MD5>695f21346fb41fa772c9927aeff4dc39</MD5>
 </FILE>
 
 <!-- Static binary built by the "Tag release" workflow and attached to the release -->
@@ -223,12 +224,12 @@
 
 <FILE Name="&srcDIR;/api.php">
 <URL>&gitURL;/src/web/api.php</URL>
-<MD5>9d9ebe16622c70be2e92a348c7c19194</MD5>
+<MD5>1b673bca915aead084e748b535e6b901</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDControl.page">
 <URL>&gitURL;/src/web/UGREENLEDControl.page</URL>
-<MD5>d6bc6c9f8fb86794f364eb7646367772</MD5>
+<MD5>c780a008e064f576a6477ca979cea81a</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDDashboard.page">
@@ -258,12 +259,12 @@
 
 <FILE Name="&srcDIR;/js/i18n.js">
 <URL>&gitURL;/src/web/js/i18n.js</URL>
-<MD5>b752e9f215e7dd6e109affff115068c9</MD5>
+<MD5>a4764db350ee92c45e8aafc789865222</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/app.js">
 <URL>&gitURL;/src/web/js/app.js</URL>
-<MD5>2e11cb20d62b62b2a0fe433b132248ce</MD5>
+<MD5>911b127ada8a8975d1a16e38d93c02af</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/dash.js">
