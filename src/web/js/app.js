@@ -827,9 +827,15 @@
                 ? t(`led.standby_${state.status.standby_mode || 'dim'}`, { pct: state.status.standby_level ?? 30 })
                 : '';
 
+            // In status mode an error or SMART warning wins over the colour set here.
+            const override = bay && bay.device && statusMode()
+                ? bay.error ? t('led.error_override')
+                    : bay.smart_warnings && state.status.smart_enabled !== false ? t('led.smart_override') : ''
+                : '';
+
             element.textContent = !bay ? ''
                 : !bay.device ? t('bays.no_disk')
-                    : [bay.slot, `/dev/${bay.device}`, standby].filter(Boolean).join(' · ');
+                    : [bay.slot, `/dev/${bay.device}`, standby, override].filter(Boolean).join(' · ');
         });
     }
 

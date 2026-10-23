@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.23.0">
+<!ENTITY version   "0.23.1">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.23.1
+- New: in the LED tables a bay that currently shows the SMART warning or the error colour says so under its name, because in status mode these win over the colour set there (a bay kept returning to orange, the SMART warning colour)
 
 ### 0.23.0
 - New: DXP480T Plus (power LED only, controller at 0x26): the power LED is set to static white at boot, without a script or i2c-tools (register writes after ich777's driver; needs testing on the hardware)
@@ -255,12 +258,12 @@
 
 <FILE Name="&srcDIR;/js/i18n.js">
 <URL>&gitURL;/src/web/js/i18n.js</URL>
-<MD5>6ad7ffb296200abe29c3058e4a2c68b2</MD5>
+<MD5>b752e9f215e7dd6e109affff115068c9</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/app.js">
 <URL>&gitURL;/src/web/js/app.js</URL>
-<MD5>7fbdb3949356cfdfa9b0a4fcd10220a4</MD5>
+<MD5>2e11cb20d62b62b2a0fe433b132248ce</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/dash.js">
