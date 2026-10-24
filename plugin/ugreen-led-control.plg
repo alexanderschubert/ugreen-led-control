@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.26.0">
+<!ENTITY version   "0.26.1">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.26.1
+- Fix: the rows in the general settings (default mode, network LED, alerts, shutdown signal) had no space between them, so the selects touched each other; the colour and time fields stop at the width of the selects
 
 ### 0.26.0
 - Light theme: the case pictures are brushed silver instead of dark; temperatures, states and white LEDs keep their contrast
@@ -269,7 +272,7 @@
 
 <FILE Name="&srcDIR;/css/app.css">
 <URL>&gitURL;/src/web/css/app.css</URL>
-<MD5>cc88e60b9d865750bd13a6ee4945c95a</MD5>
+<MD5>a7a0481690823df091377a71a884bfc7</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/i18n.js">
