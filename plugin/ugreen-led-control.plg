@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.25.0">
+<!ENTITY version   "0.26.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.26.0
+- Light theme: the case pictures are brushed silver instead of dark; temperatures, states and white LEDs keep their contrast
 
 ### 0.25.0
 - New, untested: UGREEN iDX6011 Pro (and iDX6011): six bays, the LED frames of that series (SMBus block writes, second LAN LED taken into account) and the bay numbers from the SATA controllers (bays 1-4 on the ASMedia chip, 5-6 on the Intel one); the model still needs a test on the hardware, reports welcome
@@ -266,7 +269,7 @@
 
 <FILE Name="&srcDIR;/css/app.css">
 <URL>&gitURL;/src/web/css/app.css</URL>
-<MD5>fa870fd9fd7bc39568d15343ab06ccbe</MD5>
+<MD5>cc88e60b9d865750bd13a6ee4945c95a</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/i18n.js">
