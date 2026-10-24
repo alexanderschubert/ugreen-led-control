@@ -63,7 +63,7 @@ Questions and problems: the [support thread in the Unraid forum](https://forums.
 
 ## Supported models
 
-The LED controller (I2C address 0x3a on the SMBus I801 adapter) is the same across UGREEN's DX/DXP series. Bays are matched to disks by SATA port, after [miskcoo/ugreen_leds_controller](https://github.com/miskcoo/ugreen_leds_controller):
+The LED controller (I2C address 0x3a on the SMBus I801 adapter, on the DXP4800 GT an AMD DesignWare I²C controller) is the same across UGREEN's DX/DXP series. Bays are matched to disks by SATA port, after [miskcoo/ugreen_leds_controller](https://github.com/miskcoo/ugreen_leds_controller):
 
 | Model | Bays → SATA ports | Assignment |
 |---|---|---|
@@ -73,9 +73,10 @@ The LED controller (I2C address 0x3a on the SMBus I801 adapter) is the same acro
 | DX4600 Pro | ata1 … ata4 | verified by miskcoo |
 | DX4700, DXP2800 | ata1 … ataN | reported by users |
 | DXP480T Plus | – | power LED only: set to static white, confirmed by a user |
+| DXP4800 GT | ata1 … ata4 | verified on a GT; no kernel module needed, the helper drives the AMD I²C controller directly |
 | other models | ata1 … ataN | guessed |
 
-The System page shows which applies; "Identify" on the Drives page checks it. Not supported: DXP2800 V1.2 and the GT models, which miskcoo lists as experimental. The DXP480T Plus only has a power LED on a simpler chip (address 0x26); the plugin sets it to static white and offers no more.
+The System page shows which applies; "Identify" on the Drives page checks it. Not supported: DXP2800 V1.2 and the other GT models, which miskcoo lists as experimental. The DXP480T Plus only has a power LED on a simpler chip (address 0x26); the plugin sets it to static white and offers no more.
 
 If your model isn't found, this lists the addresses that answer on every I²C bus (it only reads):
 
@@ -99,7 +100,7 @@ The settings page is at Settings → UGREEN LED Control. If you use the `ugreenl
 
 ## How it works
 
-- `i2c/` – `ugreen-led-i2c`, a static Go tool that talks to the LED controller (address 0x3a on the "SMBus I801 adapter") through `/dev/i2c-N`. No kernel module, so new Unraid kernels keep working. Protocol after [miskcoo/ugreen_leds_controller](https://github.com/miskcoo/ugreen_leds_controller).
+- `i2c/` – `ugreen-led-i2c`, a static Go tool that talks to the LED controller (address 0x3a on the "SMBus I801 adapter") through `/dev/i2c-N`; on the DXP4800 GT it drives the AMD I²C controller directly through `/dev/mem`. No kernel module, so new Unraid kernels keep working. Protocol after [miskcoo/ugreen_leds_controller](https://github.com/miskcoo/ugreen_leds_controller).
 - `src/backend/ugreen-led-ctl` – settings (`apply`), bay mapping (`bays`) and the status daemon, on top of `ugreen-led-i2c`.
 - `src/web/api.php` is the JSON API for the settings page; writes need the WebGUI `csrf_token`.
 

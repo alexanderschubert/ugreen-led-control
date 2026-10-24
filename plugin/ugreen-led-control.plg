@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.23.1">
+<!ENTITY version   "0.24.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.24.0
+- New: DXP4800 GT (the controller sits on an AMD DesignWare I2C controller; the helper drives it directly, no kernel module)
 
 ### 0.23.1
 - New: two switches in the status display (System page): "Show disk errors" and "Blink on disk activity". With SMART warnings, parity check and the disk temperature switched off as well, every bay keeps just the colour set for it (on by default, so nothing changes)
@@ -207,13 +210,13 @@
 
 <FILE Name="&srcDIR;/backend/ugreen-led-ctl">
 <URL>&gitURL;/src/backend/ugreen-led-ctl</URL>
-<MD5>695f21346fb41fa772c9927aeff4dc39</MD5>
+<MD5>7f7ffb201dbac9ecfca8ff50e77d6e64</MD5>
 </FILE>
 
 <!-- Static binary built by the "Tag release" workflow and attached to the release -->
 <FILE Name="&srcDIR;/backend/ugreen-led-i2c">
 <URL>&releaseURL;/ugreen-led-i2c</URL>
-<MD5>18abf6dcb6f320cd8cb61e7381d695c7</MD5>
+<MD5>7ba810f68e6cbe2494742b5da588c0c9</MD5>
 </FILE>
 
 <!-- Called by emhttp at the start of every array stop (power LED on shutdown or reboot) -->
