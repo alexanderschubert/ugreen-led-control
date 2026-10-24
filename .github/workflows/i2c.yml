@@ -7,24 +7,32 @@ on:
   pull_request:
     paths: [i2c/**, plugin/**, src/**, scripts/plg-hashes.py, scripts/i18n.py, .github/workflows/i2c.yml]
 
-# Same Go and flags as "Tag release": the build is reproducible, so the MD5 in
-# the .plg can be checked here before the release binary exists.
-env:
-  GO_VERSION: '1.27.3'
+permissions:
+  contents: read
 
+concurrency:
+  group: i2c-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Same Go (from i2c/go.mod) and flags as "Tag release": the build is reproducible,
+# so the MD5 in the .plg can be checked here before the release binary exists.
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-go@v7
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: i2c/go.mod
+          cache-dependency-path: i2c/go.mod
 
       - working-directory: i2c
         run: |
-          gofmt -l . | tee /dev/stderr | (! read)
+          gofmt -l . | tee /dev/stderr | (! read -r)
           go vet ./...
           go run honnef.co/go/tools/cmd/staticcheck@v0.8.2 ./...
           go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
