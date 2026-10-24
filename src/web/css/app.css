@@ -460,6 +460,8 @@
 
 .ulc select {
     width: 100%;
+    /* A select as wide as a whole card (1500 px+) makes Chrome draw its list without the texts. */
+    max-width: 520px;
     padding: 10px 38px 10px 14px;
     border: 1px solid var(--ulc-border);
     border-radius: 8px;
