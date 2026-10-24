@@ -72,6 +72,7 @@ The LED controller (I2C address 0x3a on the SMBus I801 adapter, on the DXP4800 G
 | DXP4800 / Plus / Pro | ata1 … ata4 | confirmed by users |
 | DX4600 Pro | ata1 … ata4 | verified by miskcoo |
 | DX4700, DXP2800 | ata1 … ataN | reported by users |
+| iDX6011 Pro | ASMedia ports (bays 1-4), Intel ports (bays 5-6) | untested, after the vendor driver and the other iDX6011 plugins; please report |
 | DXP480T Plus | – | power LED only: set to static white, confirmed by a user |
 | DXP4800 GT | ata1 … ata4 | verified on a GT; no kernel module needed, the helper drives the AMD I²C controller directly |
 | other models | ata1 … ataN | guessed |
