@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.24.2">
+<!ENTITY version   "0.25.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.25.0
+- New, untested: UGREEN iDX6011 Pro (and iDX6011): six bays, the LED frames of that series (SMBus block writes, second LAN LED taken into account) and the bay numbers from the SATA controllers (bays 1-4 on the ASMedia chip, 5-6 on the Intel one); the model still needs a test on the hardware, reports welcome
 
 ### 0.24.2
 - Fix: with a very wide browser window the open drop-down lists showed no texts (Chrome); the selects are now at most 520 px wide
@@ -216,13 +219,13 @@
 
 <FILE Name="&srcDIR;/backend/ugreen-led-ctl">
 <URL>&gitURL;/src/backend/ugreen-led-ctl</URL>
-<MD5>7f7ffb201dbac9ecfca8ff50e77d6e64</MD5>
+<MD5>cbbafe9fb4daf01c82838461ac4989b2</MD5>
 </FILE>
 
 <!-- Static binary built by the "Tag release" workflow and attached to the release -->
 <FILE Name="&srcDIR;/backend/ugreen-led-i2c">
 <URL>&releaseURL;/ugreen-led-i2c</URL>
-<MD5>c08a0040cf7203fdf9079152af67c25d</MD5>
+<MD5>149a0cea616a25f054c8a92492345e27</MD5>
 </FILE>
 
 <!-- Called by emhttp at the start of every array stop (power LED on shutdown or reboot) -->
