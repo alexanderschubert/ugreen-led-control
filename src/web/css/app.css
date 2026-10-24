@@ -439,6 +439,12 @@
     grid-template-columns: 130px minmax(0, 1fr);
     gap: 14px;
     align-items: center;
+    margin-bottom: 12px;
+}
+
+/* Colour and time fields stop at the width of the selects instead of spanning a wide card. */
+.ulc-field-row .ulc-color-input {
+    max-width: 520px;
 }
 
 .ulc-night-note {
@@ -471,6 +477,7 @@
 
 .ulc input[type="time"] {
     width: 100%;
+    max-width: 520px;
     padding: 9px 12px;
     border: 1px solid var(--ulc-border);
     border-radius: 8px;
