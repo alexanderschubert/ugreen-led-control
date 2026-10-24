@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.24.1">
+<!ENTITY version   "0.24.2">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.24.2
+- Fix: with a very wide browser window the open drop-down lists showed no texts (Chrome); the selects are now at most 520 px wide
 
 ### 0.24.1
 - Built with Go 1.27.3; the I2C helper is a little simpler inside, with no change in behaviour
@@ -260,7 +263,7 @@
 
 <FILE Name="&srcDIR;/css/app.css">
 <URL>&gitURL;/src/web/css/app.css</URL>
-<MD5>736b2bbb9427f3ce636908d4fe9bcfe4</MD5>
+<MD5>fa870fd9fd7bc39568d15343ab06ccbe</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/i18n.js">
