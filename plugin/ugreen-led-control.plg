@@ -2,7 +2,7 @@
 <!DOCTYPE PLUGIN [
 <!ENTITY name      "ugreen-led-control">
 <!ENTITY author    "Alexander Schubert">
-<!ENTITY version   "0.26.1">
+<!ENTITY version   "0.27.0">
 <!ENTITY launch    "Settings/UGREENLEDControl">
 <!ENTITY repo      "https://raw.githubusercontent.com/alexanderschubert/ugreen-led-control">
 <!ENTITY gitURL    "&repo;/v&version;">
@@ -24,6 +24,9 @@
 >
 
 <CHANGES>
+
+### 0.27.0
+- Overview: the LED colours and the LED effects are merged, because colour and effect only make sense together. One card for the system LEDs (power, network) and one for the drive LEDs, each with its colours and its effect; the "Effects" page and the "Apply to" selection are gone. Speed, direction and "only when idle" stay in the effect settings and apply to both
 
 ### 0.26.1
 - Fix: the rows in the general settings (default mode, network LED, alerts, shutdown signal) had no space between them, so the selects touched each other; the colour and time fields stop at the width of the selects
@@ -247,7 +250,7 @@
 
 <FILE Name="&srcDIR;/UGREENLEDControl.page">
 <URL>&gitURL;/src/web/UGREENLEDControl.page</URL>
-<MD5>c780a008e064f576a6477ca979cea81a</MD5>
+<MD5>5f1dfec156a26176bac4633f1f704aeb</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/UGREENLEDDashboard.page">
@@ -272,17 +275,17 @@
 
 <FILE Name="&srcDIR;/css/app.css">
 <URL>&gitURL;/src/web/css/app.css</URL>
-<MD5>a7a0481690823df091377a71a884bfc7</MD5>
+<MD5>3cd00022e9d9f3df78b4946c40cdf4b6</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/i18n.js">
 <URL>&gitURL;/src/web/js/i18n.js</URL>
-<MD5>a4764db350ee92c45e8aafc789865222</MD5>
+<MD5>54318c2d487dd193dc66413a4444b63d</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/app.js">
 <URL>&gitURL;/src/web/js/app.js</URL>
-<MD5>911b127ada8a8975d1a16e38d93c02af</MD5>
+<MD5>d205edbe127e32784ff5c21dd4d0690e</MD5>
 </FILE>
 
 <FILE Name="&srcDIR;/js/dash.js">
