@@ -1,3 +1,12 @@
+> [!IMPORTANT]
+> **This project is no longer developed.** Everything UGREEN LED Control does lives on in **[UGREEN NAS Control](https://github.com/ugreen-nas-control/ugreen-nas-control)**, which also controls the fans and more, and which is developed from now on. Please switch:
+>
+> 1. Unraid: Plugins → Install Plugin → `https://raw.githubusercontent.com/ugreen-nas-control/ugreen-nas-control/main/plugin/ugreen-nas-control.plg` (needs Unraid 7.2 or newer)
+> 2. Open **Settings → UGREEN NAS Control → LEDs**, which offers to take over your LED settings from this plugin.
+> 3. Then remove UGREEN LED Control: both write the same LEDs and must not run side by side. Removing it also deletes its saved settings, so do step 2 first.
+>
+> Details: [Coming from UGREEN LED Control](https://github.com/ugreen-nas-control/ugreen-nas-control/blob/main/docs/faq.md#coming-from-ugreen-led-control). This plugin stays available as it is, but gets no more fixes or new models.
+
 # UGREEN LED Control for Unraid
 
 [![Release](https://img.shields.io/github/v/release/alexanderschubert/ugreen-led-control?color=0078ff&label=release)](https://github.com/alexanderschubert/ugreen-led-control/releases/latest)
